@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/lib/utils';
-
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreateApplication, useCreateApplicationReference } from '@/hooks/useApplications';
+import { useUpdateProfile } from '@/hooks/useProfiles';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 const steps = [
   { id: 1, title: 'Personal Info' },
   { id: 2, title: 'Background' },
@@ -25,7 +30,13 @@ interface Reference {
 
 export default function RecipientApply() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const createApplication = useCreateApplication();
+  const createReference = useCreateApplicationReference();
+  const updateProfile = useUpdateProfile();
+  
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Form state
   const [name, setName] = useState('');
@@ -101,9 +112,86 @@ export default function RecipientApply() {
     setReferences(updated);
   };
 
-  const handleSubmit = () => {
-    // Demo: navigate to confirmation
-    navigate('/recipient/apply/success');
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Please log in",
+        description: "You must be logged in to submit an application.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Update user profile with form data
+      await updateProfile.mutateAsync({
+        full_name: name,
+        location: location,
+        country: country,
+      });
+
+      // Map creator type to valid enum value
+      const validCreatorTypes: Database['public']['Enums']['creator_type'][] = ['student', 'artist', 'entrepreneur', 'developer', 'educator', 'other'];
+      let mappedCreatorType: Database['public']['Enums']['creator_type'] = 'other';
+      
+      if (creatorType === 'content-creator') {
+        mappedCreatorType = 'other';
+      } else if (creatorType === 'designer') {
+        mappedCreatorType = 'artist';
+      } else if (validCreatorTypes.includes(creatorType as any)) {
+        mappedCreatorType = creatorType as Database['public']['Enums']['creator_type'];
+      }
+
+      // Upsert recipient profile
+      const { error: profileError } = await supabase
+        .from('recipient_profiles')
+        .upsert({
+          user_id: user.id,
+          creator_type: mappedCreatorType,
+          school_or_career: schoolOrCareer,
+          institution: institution || null,
+        }, {
+          onConflict: 'user_id',
+        });
+
+      if (profileError) throw profileError;
+
+      // Create application
+      const application = await createApplication.mutateAsync({
+        device_needed: deviceNeeded === 'other' ? otherDeviceNeeded : deviceNeeded,
+        purpose: purpose,
+      });
+
+      // Create references
+      const validRefs = references.filter(r => r.name.trim() && r.relationship.trim() && r.contact.trim());
+      for (const ref of validRefs) {
+        await createReference.mutateAsync({
+          application_id: application.id,
+          name: ref.name,
+          relationship: ref.relationship,
+          contact: ref.contact,
+        });
+      }
+
+      toast({
+        title: "Application Submitted!",
+        description: "Your application has been submitted successfully.",
+      });
+
+      navigate('/recipient/apply/success');
+    } catch (error) {
+      console.error('Error submitting application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -539,9 +627,16 @@ export default function RecipientApply() {
           ) : (
             <Button 
               onClick={handleSubmit}
-              disabled={!isStepValid(5)}
+              disabled={!isStepValid(5) || isSubmitting}
             >
-              Submit Application
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Submit Application'
+              )}
             </Button>
           )}
         </div>
