@@ -116,12 +116,6 @@ export default function Login() {
               Sign up
             </Link>
           </p>
-
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            <Link to="/admin/login" className="text-muted-foreground hover:text-foreground">
-              Admin Login
-            </Link>
-          </p>
         </div>
       </div>
 
