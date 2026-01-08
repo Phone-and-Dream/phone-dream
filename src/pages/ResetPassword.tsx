@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Smartphone, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -123,6 +124,7 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8 bg-background">
       <div className="w-full max-w-md">
+        <BackButton to="/login" label="Back to Login" className="mb-6" />
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-primary mb-8">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
             <Smartphone className="h-5 w-5" />

@@ -4,6 +4,7 @@ import { Trophy, Medal, TrendingUp, Filter, MapPin, Crown, Loader2 } from 'lucid
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/ui/back-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { useLeaderboard } from '@/hooks/useProfiles';
@@ -86,6 +87,7 @@ export default function Leaderboard() {
         {/* Hero Section */}
         <section className="warm-gradient py-12 border-b border-border">
           <div className="container">
+            <BackButton className="mb-4" />
             <div className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
                 <Trophy className="h-4 w-4" />
