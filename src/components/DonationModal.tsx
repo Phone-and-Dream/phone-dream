@@ -8,11 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { NFTBadge } from '@/components/NFTBadge';
-import { DreamRequest } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreateDonation } from '@/hooks/useDonations';
+import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import type { Database } from '@/integrations/supabase/types';
+
+type DreamRequestWithDetails = Database['public']['Tables']['dream_requests']['Row'] & {
+  recipient?: Database['public']['Tables']['profiles']['Row'] | null;
+  recipient_profile?: Database['public']['Tables']['recipient_profiles']['Row'] | null;
+};
 
 interface DonationModalProps {
-  request: DreamRequest | null;
+  request: DreamRequestWithDetails | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -21,10 +29,13 @@ type DonationStep = 'overview' | 'form' | 'confirm' | 'success';
 
 export function DonationModal({ request, isOpen, onClose }: DonationModalProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const createDonation = useCreateDonation();
+  
   const [step, setStep] = useState<DonationStep>('overview');
   const [deviceType, setDeviceType] = useState('');
   const [otherDeviceType, setOtherDeviceType] = useState('');
-  const [condition, setCondition] = useState('');
+  const [condition, setCondition] = useState<'new' | 'used' | 'refurbished'>('used');
   const [currency, setCurrency] = useState('USD');
   const [repairContribution, setRepairContribution] = useState('');
   const [donorName, setDonorName] = useState('');
@@ -33,14 +44,44 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
   const handleClose = () => {
     setStep('overview');
     setDeviceType('');
-    setCondition('');
+    setCondition('used');
     setCurrency('USD');
     setRepairContribution('');
     onClose();
   };
 
-  const handleSubmit = () => {
-    setStep('success');
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({ 
+        title: "Please sign in", 
+        description: "You need to be logged in as a donor to make a donation.",
+        variant: "destructive"
+      });
+      navigate('/donor/register');
+      return;
+    }
+
+    try {
+      const finalDeviceType = deviceType === 'other' ? otherDeviceType : deviceType;
+      
+      await createDonation.mutateAsync({
+        device_type: finalDeviceType,
+        condition: condition,
+        needs_refurbishing: request?.needs_refurbishing || false,
+        repair_contribution: repairContribution ? parseFloat(repairContribution) : null,
+        currency: currency,
+        device_specs: null,
+      });
+
+      setStep('success');
+      toast({ title: "Donation submitted!", description: "Thank you for your generosity." });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Failed to submit donation. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getCurrencySymbol = (curr: string) => {
@@ -61,7 +102,20 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
     }
   };
 
+  const getMilestones = (request: DreamRequestWithDetails): string[] => {
+    const milestones = request.milestones as { items?: string[] } | string[] | null;
+    if (Array.isArray(milestones)) return milestones;
+    if (milestones && Array.isArray(milestones.items)) return milestones.items;
+    return ['Complete online courses', 'Build portfolio projects', 'Start freelancing'];
+  };
+
   if (!request) return null;
+
+  const recipientName = request.recipient?.full_name || 'Anonymous';
+  const recipientAvatar = request.recipient?.avatar_url || 'https://via.placeholder.com/64';
+  const creatorType = request.recipient_profile?.creator_type || 'Creator';
+  const location = request.recipient?.location || 'Unknown';
+  const rank = request.recipient_profile?.rank || 'Bronze';
 
   const renderStep = () => {
     switch (step) {
@@ -71,7 +125,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Heart className="h-5 w-5 text-primary" />
-                Support {request.recipientName}'s Dream
+                Support {recipientName}'s Dream
               </DialogTitle>
             </DialogHeader>
             
@@ -79,24 +133,24 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
               {/* Recipient Summary */}
               <div className="flex items-start gap-4 p-4 bg-muted/50 rounded-xl">
                 <img 
-                  src={request.recipientAvatar} 
-                  alt={request.recipientName} 
+                  src={recipientAvatar} 
+                  alt={recipientName} 
                   className="w-16 h-16 rounded-xl object-cover"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold">{request.recipientName}</h3>
-                    <RankBadge rank={request.xpRank} size="sm" />
+                    <h3 className="font-semibold">{recipientName}</h3>
+                    <RankBadge rank={rank} size="sm" />
                   </div>
-                  <p className="text-sm text-muted-foreground">{request.creatorType} • {request.region}</p>
+                  <p className="text-sm text-muted-foreground">{creatorType} • {location}</p>
                 </div>
               </div>
 
               {/* Device Needed */}
               <div className="p-4 border border-primary/20 bg-primary/5 rounded-xl">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Device Needed</p>
-                <p className="text-xl font-bold text-primary">{request.deviceNeeded}</p>
-                {request.needsRefurbishing && (
+                <p className="text-xl font-bold text-primary">{request.device_needed}</p>
+                {request.needs_refurbishing && (
                   <p className="text-xs text-amber-600 mt-1">✨ Open to refurbished devices</p>
                 )}
               </div>
@@ -111,7 +165,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
               <div>
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">What They'll Achieve</p>
                 <ul className="space-y-1">
-                  {request.milestones.map((milestone, i) => (
+                  {getMilestones(request).map((milestone, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <span className="h-5 w-5 rounded-full bg-accent/20 flex items-center justify-center text-xs">
                         {i + 1}
@@ -124,7 +178,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
 
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" asChild>
-                  <Link to={`/recipient/profile/${request.recipientId}`}>View Full Profile</Link>
+                  <Link to={`/recipient/profile/${request.recipient_id}`}>View Full Profile</Link>
                 </Button>
                 <Button className="flex-1" onClick={() => setStep('form')}>
                   Proceed to Donate
@@ -194,7 +248,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
 
               <div className="space-y-2">
                 <Label>Condition *</Label>
-                <Select value={condition} onValueChange={setCondition}>
+                <Select value={condition} onValueChange={(v) => setCondition(v as 'new' | 'used' | 'refurbished')}>
                   <SelectTrigger><SelectValue placeholder="Select condition" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="new">New</SelectItem>
@@ -204,7 +258,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                 </Select>
               </div>
 
-              {request.needsRefurbishing && (
+              {request.needs_refurbishing && (
                 <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3">
                   <p className="text-sm font-medium">Optional: Contribute to Repair Costs</p>
                   <div className="grid grid-cols-3 gap-2">
@@ -275,7 +329,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Recipient</dt>
-                    <dd className="font-medium">{request.recipientName}</dd>
+                    <dd className="font-medium">{recipientName}</dd>
                   </div>
                   {repairContribution && (
                     <div className="flex justify-between">
@@ -297,9 +351,9 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setStep('form')}>Back</Button>
-                <Button className="flex-1" onClick={handleSubmit}>
+                <Button className="flex-1" onClick={handleSubmit} disabled={createDonation.isPending}>
                   <Check className="h-4 w-4 mr-2" />
-                  Confirm & Submit
+                  {createDonation.isPending ? 'Submitting...' : 'Confirm & Submit'}
                 </Button>
               </div>
             </div>
@@ -317,7 +371,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
               <div>
                 <h2 className="text-2xl font-display font-bold mb-2">Thank You! 🎉</h2>
                 <p className="text-muted-foreground">
-                  Your donation has been submitted. You're helping {request.recipientName} achieve their dreams!
+                  Your donation has been submitted. You're helping {recipientName} achieve their dreams!
                 </p>
               </div>
 
@@ -326,8 +380,8 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                 <NFTBadge
                   donorName={donorName || "Anonymous Donor"}
                   donorId="preview"
-                  recipientName={request.recipientName}
-                  recipientId={request.recipientId}
+                  recipientName={recipientName}
+                  recipientId={request.recipient_id}
                   deviceType={deviceType === 'other' ? otherDeviceType : deviceType}
                   condition={condition === 'new' ? 'New' : 'Refurbished'}
                   txHash="0x7a3b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c"
