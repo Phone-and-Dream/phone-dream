@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Smartphone, Gift, Heart, Loader2 } from 'lucide-react';
+import { Smartphone, Gift, Heart, Loader2, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,21 +19,19 @@ export default function Signup() {
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Validation helpers
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isNameValid = name.trim().length >= 2;
+  const isEmailValid = isValidEmail(email);
+  const isPasswordValid = password.length >= 6;
+  const isFormValid = role && isNameValid && isEmailValid && isPasswordValid;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!role || !email || !password || !name) {
+    if (!isFormValid) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all fields and select a role.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters.",
+        description: "Please fill in all fields correctly and select a role.",
         variant: "destructive",
       });
       return;
@@ -134,48 +132,78 @@ export default function Signup() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name" 
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input 
+                  id="name" 
+                  placeholder="Your name (min 2 characters)"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={isLoading}
+                  className={cn(name && (isNameValid ? "border-accent" : "border-destructive"))}
+                />
+                {name && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {isNameValid ? <Check className="h-4 w-4 text-accent" /> : <X className="h-4 w-4 text-destructive" />}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Input 
+                  id="email" 
+                  type="email" 
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  className={cn(email && (isEmailValid ? "border-accent" : "border-destructive"))}
+                />
+                {email && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {isEmailValid ? <Check className="h-4 w-4 text-accent" /> : <X className="h-4 w-4 text-destructive" />}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-              />
-              <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+              <div className="relative">
+                <Input 
+                  id="password" 
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  className={cn(password && (isPasswordValid ? "border-accent" : "border-destructive"))}
+                />
+                {password && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {isPasswordValid ? <Check className="h-4 w-4 text-accent" /> : <X className="h-4 w-4 text-destructive" />}
+                  </span>
+                )}
+              </div>
+              <p className={cn("text-xs", password && !isPasswordValid ? "text-destructive" : "text-muted-foreground")}>
+                Must be at least 6 characters {password && `(${password.length}/6)`}
+              </p>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={!role || isLoading}>
+            <Button type="submit" className="w-full" size="lg" disabled={!isFormValid || isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Creating account...
                 </>
+              ) : !role ? (
+                'Select a role above'
+              ) : !isFormValid ? (
+                'Complete all fields'
               ) : (
-                role === 'donor' ? 'Continue to Donate' : role === 'recipient' ? 'Continue to Apply' : 'Select a role above'
+                role === 'donor' ? 'Continue to Donate' : 'Continue to Apply'
               )}
             </Button>
           </form>
