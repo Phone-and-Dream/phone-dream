@@ -74,9 +74,9 @@ export default function Landing() {
                 Bridging the Digital Divide
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 animate-fade-in-up">
-                WE BRIDGE THE DIGITAL DIVIDE,{' '}
-                <span className="text-primary">ONE DEVICE, ONE DREAM</span> AT A TIME.
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 animate-fade-in-up text-foreground">
+                WE BRIDGE THE DIGITAL DIVIDE,<br />
+                <span className="text-primary italic">ONE DEVICE, ONE DREAM</span> AT A TIME.
               </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
