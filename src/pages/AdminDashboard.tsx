@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History } from 'lucide-react';
+import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,147 +15,237 @@ import { ApplicationDetailModal } from '@/components/admin/ApplicationDetailModa
 import { ApplicationTrendChart, DonationsByRegionChart, DeviceTypeChart, XPGrowthChart } from '@/components/admin/AnalyticsCharts';
 import { XPRulesManager } from '@/components/admin/XPRulesManager';
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
-import { mockApplications, mockDonors, mockRecipients, mockAttestationLogs, mockActivityLogs, getAllDonations, formatDate, type Application, type Donation } from '@/lib/mockData';
 import { logAdminAction } from '@/lib/auditLog';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAllApplications, useUpdateApplication } from '@/hooks/useApplications';
+import { useAllDonations, useUpdateDonation } from '@/hooks/useDonations';
+import { useAllRecipientProfiles, useAllDonorProfiles, useAttestations, useActivityLogs, useUpdateApplicationReference, useCreateAttestation } from '@/hooks/useAdminData';
+import { format } from 'date-fns';
+import type { Database } from '@/integrations/supabase/types';
+
+type ApplicationWithDetails = Database['public']['Tables']['applications']['Row'] & {
+  profile?: Database['public']['Tables']['profiles']['Row'] | null;
+  references?: Database['public']['Tables']['application_references']['Row'][];
+};
+
+type DonationWithDetails = Database['public']['Tables']['donations']['Row'] & {
+  donor?: Database['public']['Tables']['profiles']['Row'] | null;
+  recipient?: Database['public']['Tables']['profiles']['Row'] | null;
+  attestation?: Database['public']['Tables']['attestations']['Row'][] | null;
+};
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [applications, setApplications] = useState(mockApplications);
-  const [donations, setDonations] = useState(getAllDonations());
+  const { signOut } = useAuth();
+  
+  // Data queries
+  const { data: applications = [], isLoading: appsLoading } = useAllApplications();
+  const { data: donations = [], isLoading: donationsLoading } = useAllDonations();
+  const { data: recipientProfiles = [], isLoading: recipientsLoading } = useAllRecipientProfiles();
+  const { data: donorProfiles = [], isLoading: donorsLoading } = useAllDonorProfiles();
+  const { data: attestations = [] } = useAttestations();
+  const { data: activityLogs = [] } = useActivityLogs();
+  
+  // Mutations
+  const updateApplication = useUpdateApplication();
+  const updateDonation = useUpdateDonation();
+  const updateReference = useUpdateApplicationReference();
+  const createAttestation = useCreateAttestation();
+
+  // Filter states
   const [appFilter, setAppFilter] = useState('all');
   const [donationFilter, setDonationFilter] = useState('all');
   const [userTab, setUserTab] = useState('recipients');
 
   // Modal states
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<ApplicationWithDetails | null>(null);
   const [isAppDetailOpen, setIsAppDetailOpen] = useState(false);
-  const [selectedDonation, setSelectedDonation] = useState<Donation | null>(null);
+  const [selectedDonation, setSelectedDonation] = useState<DonationWithDetails | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
 
-  const handleLogout = () => {
-    logAdminAction({
+  const handleLogout = async () => {
+    await logAdminAction({
       actionType: 'logout',
       description: 'Admin logged out of the dashboard',
     });
-    sessionStorage.removeItem('adminAuthenticated');
+    await signOut();
     toast({ title: "Logged out", description: "You've been logged out of the admin panel." });
     navigate('/admin/login');
   };
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
     const app = applications.find(a => a.id === id);
-    setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'approved' as const } : a));
-    logAdminAction({
-      actionType: 'approve_application',
-      description: `Approved application for ${app?.recipientName}`,
-      entityType: 'application',
-      entityId: id,
-      oldValue: { status: 'pending' },
-      newValue: { status: 'approved' },
-    });
-    toast({ title: "Application Approved", description: "The recipient has been approved." });
+    try {
+      await updateApplication.mutateAsync({
+        id,
+        status: 'approved',
+        reviewed_at: new Date().toISOString(),
+      });
+      await logAdminAction({
+        actionType: 'approve_application',
+        description: `Approved application for ${app?.profile?.full_name || 'Unknown'}`,
+        entityType: 'application',
+        entityId: id,
+        oldValue: { status: 'pending' },
+        newValue: { status: 'approved' },
+      });
+      toast({ title: "Application Approved", description: "The recipient has been approved." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to approve application", variant: "destructive" });
+    }
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
     const app = applications.find(a => a.id === id);
-    setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'rejected' as const } : a));
-    logAdminAction({
-      actionType: 'reject_application',
-      description: `Rejected application for ${app?.recipientName}`,
-      entityType: 'application',
-      entityId: id,
-      oldValue: { status: 'pending' },
-      newValue: { status: 'rejected' },
-    });
-    toast({ title: "Application Rejected", description: "The application has been rejected." });
+    try {
+      await updateApplication.mutateAsync({
+        id,
+        status: 'rejected',
+        reviewed_at: new Date().toISOString(),
+      });
+      await logAdminAction({
+        actionType: 'reject_application',
+        description: `Rejected application for ${app?.profile?.full_name || 'Unknown'}`,
+        entityType: 'application',
+        entityId: id,
+        oldValue: { status: 'pending' },
+        newValue: { status: 'rejected' },
+      });
+      toast({ title: "Application Rejected", description: "The application has been rejected." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to reject application", variant: "destructive" });
+    }
   };
 
-  const handleValidateReference = (appId: string, refIndex: number) => {
+  const handleValidateReference = async (appId: string, refId: string) => {
     const app = applications.find(a => a.id === appId);
-    const refName = app?.references[refIndex]?.name;
-    setApplications(apps => apps.map(a => {
-      if (a.id === appId) {
-        const updatedRefs = [...a.references];
-        updatedRefs[refIndex] = { ...updatedRefs[refIndex], isValidated: true };
-        return { ...a, references: updatedRefs };
-      }
-      return a;
-    }));
-    logAdminAction({
-      actionType: 'validate_reference',
-      description: `Validated reference "${refName}" for ${app?.recipientName}`,
-      entityType: 'application',
-      entityId: appId,
-      newValue: { reference: refName, validated: true },
-    });
-    toast({ title: "Reference Validated", description: "The reference has been marked as validated." });
+    const ref = app?.references?.find(r => r.id === refId);
+    try {
+      await updateReference.mutateAsync({
+        id: refId,
+        is_validated: true,
+      });
+      await logAdminAction({
+        actionType: 'validate_reference',
+        description: `Validated reference "${ref?.name}" for ${app?.profile?.full_name || 'Unknown'}`,
+        entityType: 'application',
+        entityId: appId,
+        newValue: { reference: ref?.name, validated: true },
+      });
+      toast({ title: "Reference Validated", description: "The reference has been marked as validated." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to validate reference", variant: "destructive" });
+    }
   };
 
-  const handleMatch = (donationId: string, recipientId: string, recipientName: string) => {
+  const handleMatch = async (donationId: string, recipientId: string, recipientName: string) => {
     const donation = donations.find(d => d.id === donationId);
-    setDonations(dons => dons.map(d => 
-      d.id === donationId ? { ...d, status: 'Matched' as const, recipientId, recipientName } : d
-    ));
-    logAdminAction({
-      actionType: 'match_device',
-      description: `Matched ${donation?.deviceType} to ${recipientName}`,
-      entityType: 'donation',
-      entityId: donationId,
-      oldValue: { status: 'Pending', recipientId: null },
-      newValue: { status: 'Matched', recipientId, recipientName },
-    });
-    toast({ title: "Device Matched!", description: `Device matched to ${recipientName}` });
+    try {
+      await updateDonation.mutateAsync({
+        id: donationId,
+        matched_recipient_id: recipientId,
+        matched_at: new Date().toISOString(),
+        status: 'matched',
+      });
+      await logAdminAction({
+        actionType: 'match_device',
+        description: `Matched ${donation?.device_type} to ${recipientName}`,
+        entityType: 'donation',
+        entityId: donationId,
+        oldValue: { status: 'pending', recipientId: null },
+        newValue: { status: 'matched', recipientId, recipientName },
+      });
+      toast({ title: "Device Matched!", description: `Device matched to ${recipientName}` });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to match device", variant: "destructive" });
+    }
   };
 
-  const handleConfirmDelivery = (donationId: string) => {
+  const handleConfirmDelivery = async (donationId: string) => {
     const donation = donations.find(d => d.id === donationId);
-    const txHash = `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`;
-    setDonations(dons => dons.map(d => 
-      d.id === donationId ? { ...d, status: 'Delivered' as const, txHash } : d
-    ));
-    logAdminAction({
-      actionType: 'confirm_delivery',
-      description: `Confirmed delivery of ${donation?.deviceType} to ${donation?.recipientName}`,
-      entityType: 'donation',
-      entityId: donationId,
-      oldValue: { status: 'Matched' },
-      newValue: { status: 'Delivered', txHash },
-    });
-    toast({ title: "Delivery Confirmed", description: `Transaction hash: ${txHash}` });
+    if (!donation || !donation.matched_recipient_id) return;
+    
+    try {
+      // Update donation status
+      await updateDonation.mutateAsync({
+        id: donationId,
+        status: 'delivered',
+        delivered_at: new Date().toISOString(),
+      });
+      
+      // Create blockchain attestation
+      const result = await createAttestation.mutateAsync({
+        donation_id: donationId,
+        donor_id: donation.donor_id,
+        recipient_id: donation.matched_recipient_id,
+        device_type: donation.device_type,
+        condition: donation.condition,
+      });
+      
+      await logAdminAction({
+        actionType: 'confirm_delivery',
+        description: `Confirmed delivery of ${donation.device_type} to ${donation.recipient?.full_name || 'recipient'}`,
+        entityType: 'donation',
+        entityId: donationId,
+        oldValue: { status: 'matched' },
+        newValue: { status: 'delivered', txHash: result.attestation?.tx_hash },
+      });
+      
+      const isDemoMode = result.attestation?.metadata?.demo_mode;
+      toast({ 
+        title: "Delivery Confirmed", 
+        description: isDemoMode 
+          ? `Demo attestation created: ${result.attestation?.tx_hash}`
+          : `Transaction hash: ${result.attestation?.tx_hash}`
+      });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to confirm delivery", variant: "destructive" });
+    }
   };
 
-  const filteredApplications = applications.filter(app => 
+  const filteredApplications = (applications as ApplicationWithDetails[]).filter(app => 
     appFilter === 'all' || app.status === appFilter
   );
 
-  const filteredDonations = donations.filter(d => 
+  const filteredDonations = (donations as DonationWithDetails[]).filter(d => 
     donationFilter === 'all' || d.status === donationFilter
   );
 
   const pendingCount = applications.filter(a => a.status === 'pending').length;
-  const pendingMatches = donations.filter(d => d.status === 'Pending').length;
-  const totalDevices = mockDonors.reduce((sum, d) => sum + d.stats.totalDonated, 0);
+  const pendingMatches = donations.filter(d => d.status === 'pending').length;
+  const totalDevices = donations.length;
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), 'MMM d, yyyy');
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const isLoading = appsLoading || donationsLoading || recipientsLoading || donorsLoading;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="admin">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="admin">
       <div className="max-w-7xl mx-auto">
-        {/* Demo Banner */}
-        <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-            <AlertTriangle className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-primary">Demo Mode - Prototype View</h3>
-            <p className="text-sm text-muted-foreground">This admin panel displays sample data for demonstration purposes.</p>
-          </div>
-        </div>
-
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-display font-bold">Admin Dashboard</h1>
-            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">DEMO</Badge>
+            {applications.length === 0 && donations.length === 0 && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">No data yet</Badge>
+            )}
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />Logout
@@ -181,12 +271,12 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-5 gap-4 mb-6">
               <div className="glass-card rounded-xl p-4 text-center">
                 <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                <p className="text-3xl font-bold text-primary">{mockRecipients.length}</p>
+                <p className="text-3xl font-bold text-primary">{recipientProfiles.length}</p>
                 <p className="text-sm text-muted-foreground">Recipients</p>
               </div>
               <div className="glass-card rounded-xl p-4 text-center">
                 <Users className="h-6 w-6 mx-auto mb-2 text-info" />
-                <p className="text-3xl font-bold text-info">{mockDonors.length}</p>
+                <p className="text-3xl font-bold text-info">{donorProfiles.length}</p>
                 <p className="text-sm text-muted-foreground">Donors</p>
               </div>
               <div className="glass-card rounded-xl p-4 text-center">
@@ -210,15 +300,17 @@ export default function AdminDashboard() {
               <div className="glass-card rounded-xl p-6">
                 <h3 className="font-semibold mb-4">Recent Activity</h3>
                 <div className="space-y-3">
-                  {mockActivityLogs.slice(0, 5).map(log => (
+                  {activityLogs.length > 0 ? activityLogs.slice(0, 5).map(log => (
                     <div key={log.id} className="flex items-start gap-3 text-sm">
                       <div className="h-2 w-2 rounded-full bg-primary mt-2" />
                       <div>
                         <p>{log.description}</p>
-                        <p className="text-muted-foreground text-xs">{new Date(log.timestamp).toLocaleString()}</p>
+                        <p className="text-muted-foreground text-xs">{new Date(log.created_at).toLocaleString()}</p>
                       </div>
                     </div>
-                  ))}
+                  )) : (
+                    <p className="text-sm text-muted-foreground">No recent activity</p>
+                  )}
                 </div>
               </div>
               <div className="glass-card rounded-xl p-6">
@@ -264,18 +356,18 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="space-y-4">
-                {filteredApplications.map(app => (
+                {filteredApplications.length > 0 ? filteredApplications.map(app => (
                   <div key={app.id} className="p-4 border rounded-xl">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="font-semibold">{app.recipientName}</h3>
-                        <p className="text-sm text-muted-foreground">{app.creatorType} • {app.location}</p>
+                        <h3 className="font-semibold">{app.profile?.full_name || 'Unknown'}</h3>
+                        <p className="text-sm text-muted-foreground">{app.device_needed} • {app.profile?.location || 'Unknown location'}</p>
                       </div>
                       <StatusBadge status={app.status} />
                     </div>
                     <p className="text-sm mb-2 line-clamp-2">{app.purpose}</p>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                      <span>References: {app.references.filter(r => r.isValidated).length}/{app.references.length} validated</span>
+                      <span>References: {app.references?.filter(r => r.is_validated).length || 0}/{app.references?.length || 0} validated</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => { setSelectedApplication(app); setIsAppDetailOpen(true); }}>
@@ -283,13 +375,19 @@ export default function AdminDashboard() {
                       </Button>
                       {app.status === 'pending' && (
                         <>
-                          <Button size="sm" onClick={() => handleApprove(app.id)}><Check className="h-4 w-4 mr-1" />Approve</Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleReject(app.id)}><X className="h-4 w-4 mr-1" />Reject</Button>
+                          <Button size="sm" onClick={() => handleApprove(app.id)} disabled={updateApplication.isPending}>
+                            <Check className="h-4 w-4 mr-1" />Approve
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleReject(app.id)} disabled={updateApplication.isPending}>
+                            <X className="h-4 w-4 mr-1" />Reject
+                          </Button>
                         </>
                       )}
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-center text-muted-foreground py-8">No applications found</p>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -303,9 +401,9 @@ export default function AdminDashboard() {
                   <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="Pending">Pending</SelectItem>
-                    <SelectItem value="Matched">Matched</SelectItem>
-                    <SelectItem value="Delivered">Delivered</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="matched">Matched</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -321,26 +419,32 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredDonations.map(d => (
+                  {filteredDonations.length > 0 ? filteredDonations.map(d => (
                     <TableRow key={d.id}>
-                      <TableCell className="font-medium">{d.deviceType}</TableCell>
-                      <TableCell>{d.donorName}</TableCell>
-                      <TableCell>{d.recipientName || '-'}</TableCell>
+                      <TableCell className="font-medium">{d.device_type}</TableCell>
+                      <TableCell>{d.donor?.full_name || 'Unknown'}</TableCell>
+                      <TableCell>{d.recipient?.full_name || '-'}</TableCell>
                       <TableCell><StatusBadge status={d.status} /></TableCell>
-                      <TableCell>{formatDate(d.date)}</TableCell>
+                      <TableCell>{formatDate(d.created_at)}</TableCell>
                       <TableCell>
-                        {d.status === 'Pending' && (
+                        {d.status === 'pending' && (
                           <Button size="sm" onClick={() => { setSelectedDonation(d); setIsMatchModalOpen(true); }}>Match</Button>
                         )}
-                        {d.status === 'Matched' && (
-                          <Button size="sm" variant="outline" onClick={() => handleConfirmDelivery(d.id)}>Confirm Delivery</Button>
+                        {d.status === 'matched' && (
+                          <Button size="sm" variant="outline" onClick={() => handleConfirmDelivery(d.id)} disabled={createAttestation.isPending}>
+                            {createAttestation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Delivery'}
+                          </Button>
                         )}
-                        {d.status === 'Delivered' && (
-                          <span className="text-xs text-muted-foreground">{d.txHash}</span>
+                        {d.status === 'delivered' && d.attestation?.[0] && (
+                          <span className="text-xs text-muted-foreground font-mono">{d.attestation[0].tx_hash}</span>
                         )}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No donations found</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -358,15 +462,19 @@ export default function AdminDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAttestationLogs.map(log => (
+                  {attestations.length > 0 ? attestations.map(log => (
                     <TableRow key={log.id}>
-                      <TableCell className="font-mono text-sm">{log.txHash}</TableCell>
-                      <TableCell>{log.deviceType}</TableCell>
-                      <TableCell>{log.donorName} → {log.recipientName}</TableCell>
-                      <TableCell>{formatDate(log.date)}</TableCell>
+                      <TableCell className="font-mono text-sm">{log.tx_hash}</TableCell>
+                      <TableCell>{log.donation?.device_type || 'Unknown'}</TableCell>
+                      <TableCell>{log.donor?.full_name || 'Unknown'} → {log.recipient?.full_name || 'Unknown'}</TableCell>
+                      <TableCell>{formatDate(log.created_at)}</TableCell>
                       <TableCell><Badge variant="outline">{log.network}</Badge></TableCell>
                     </TableRow>
-                  ))}
+                  )) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">No attestations yet</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -397,24 +505,28 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockRecipients.map(r => (
+                      {recipientProfiles.length > 0 ? recipientProfiles.map(r => (
                         <TableRow key={r.id}>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={r.avatar} />
+                                <AvatarImage src={r.profile?.avatar_url || ''} />
                                 <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{r.name}</span>
+                              <span className="font-medium">{r.profile?.full_name || 'Unknown'}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{r.creatorType}</TableCell>
-                          <TableCell>{r.location}, {r.country}</TableCell>
+                          <TableCell>{r.creator_type || 'Other'}</TableCell>
+                          <TableCell>{r.profile?.location || '-'}, {r.profile?.country || '-'}</TableCell>
                           <TableCell><Badge variant="outline">{r.xp} XP</Badge></TableCell>
-                          <TableCell>{r.deviceReceived ? <Check className="h-4 w-4 text-success" /> : <X className="h-4 w-4 text-muted-foreground" />}</TableCell>
-                          <TableCell>{formatDate(r.memberSince)}</TableCell>
+                          <TableCell>{r.device_received_id ? <Check className="h-4 w-4 text-success" /> : <X className="h-4 w-4 text-muted-foreground" />}</TableCell>
+                          <TableCell>{formatDate(r.created_at)}</TableCell>
                         </TableRow>
-                      ))}
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No recipients found</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TabsContent>
@@ -432,24 +544,28 @@ export default function AdminDashboard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {mockDonors.map(d => (
+                      {donorProfiles.length > 0 ? donorProfiles.map(d => (
                         <TableRow key={d.id}>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={d.avatar} />
-                                <AvatarFallback>{d.avatar}</AvatarFallback>
+                                <AvatarImage src={d.profile?.avatar_url || ''} />
+                                <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{d.name}</span>
+                              <span className="font-medium">{d.organization_name || d.profile?.full_name || 'Unknown'}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{d.type}</TableCell>
-                          <TableCell>{d.location}</TableCell>
-                          <TableCell>{d.stats.totalDonated}</TableCell>
-                          <TableCell>{d.stats.recipientsHelped}</TableCell>
-                          <TableCell>{formatDate(d.memberSince)}</TableCell>
+                          <TableCell>{d.donor_type}</TableCell>
+                          <TableCell>{d.profile?.location || '-'}</TableCell>
+                          <TableCell>{d.total_donated}</TableCell>
+                          <TableCell>{d.recipients_helped}</TableCell>
+                          <TableCell>{formatDate(d.created_at)}</TableCell>
                         </TableRow>
-                      ))}
+                      )) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No donors found</TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </TabsContent>
@@ -465,32 +581,36 @@ export default function AdminDashboard() {
                   <span className="text-muted-foreground text-sm">Applications</span>
                   <ArrowUpRight className="h-4 w-4 text-success" />
                 </div>
-                <p className="text-2xl font-bold">12</p>
-                <p className="text-xs text-success">+25% vs last month</p>
+                <p className="text-2xl font-bold">{applications.length}</p>
+                <p className="text-xs text-muted-foreground">Total applications</p>
               </div>
               <div className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-muted-foreground text-sm">Approval Rate</span>
                   <ArrowUpRight className="h-4 w-4 text-success" />
                 </div>
-                <p className="text-2xl font-bold">85%</p>
-                <p className="text-xs text-success">+5% vs last month</p>
+                <p className="text-2xl font-bold">
+                  {applications.length > 0 
+                    ? Math.round((applications.filter(a => a.status === 'approved').length / applications.length) * 100)
+                    : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">Of all applications</p>
               </div>
               <div className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-muted-foreground text-sm">Devices Donated</span>
                   <ArrowUpRight className="h-4 w-4 text-success" />
                 </div>
-                <p className="text-2xl font-bold">8</p>
-                <p className="text-xs text-success">+33% vs last month</p>
+                <p className="text-2xl font-bold">{donations.length}</p>
+                <p className="text-xs text-muted-foreground">Total donations</p>
               </div>
               <div className="glass-card rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-muted-foreground text-sm">Avg XP Growth</span>
-                  <ArrowDownRight className="h-4 w-4 text-destructive" />
+                  <span className="text-muted-foreground text-sm">Deliveries</span>
+                  <ArrowUpRight className="h-4 w-4 text-success" />
                 </div>
-                <p className="text-2xl font-bold">+450</p>
-                <p className="text-xs text-destructive">-10% vs last month</p>
+                <p className="text-2xl font-bold">{donations.filter(d => d.status === 'delivered').length}</p>
+                <p className="text-xs text-muted-foreground">Completed deliveries</p>
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-6">

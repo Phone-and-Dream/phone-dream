@@ -83,18 +83,35 @@ export function useAllDonations() {
   return useQuery({
     queryKey: ['all_donations'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get donations with attestations
+      const { data: donations, error: donationsError } = await supabase
         .from('donations')
         .select(`
           *,
-          donor:profiles!donations_donor_id_fkey(*),
-          recipient:profiles!donations_matched_recipient_id_fkey(*),
           attestation:attestations(*)
         `)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (donationsError) throw donationsError;
+      
+      // Get unique profile IDs
+      const donorIds = donations?.map(d => d.donor_id).filter(Boolean) || [];
+      const recipientIds = donations?.map(d => d.matched_recipient_id).filter(Boolean) || [];
+      const allIds = [...new Set([...donorIds, ...recipientIds])];
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', allIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Combine the data
+      return donations?.map(donation => ({
+        ...donation,
+        donor: profiles?.find(p => p.id === donation.donor_id) || null,
+        recipient: profiles?.find(p => p.id === donation.matched_recipient_id) || null,
+      })) || [];
     },
     enabled: isAdmin,
   });

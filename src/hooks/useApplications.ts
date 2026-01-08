@@ -38,17 +38,31 @@ export function useAllApplications() {
   return useQuery({
     queryKey: ['all_applications'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get applications
+      const { data: apps, error: appsError } = await supabase
         .from('applications')
         .select(`
           *,
-          profile:profiles!applications_user_id_fkey(*),
           references:application_references(*)
         `)
         .order('submitted_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (appsError) throw appsError;
+      
+      // Then get profiles for each user_id
+      const userIds = apps?.map(a => a.user_id) || [];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds);
+      
+      if (profilesError) throw profilesError;
+      
+      // Combine the data
+      return apps?.map(app => ({
+        ...app,
+        profile: profiles?.find(p => p.id === app.user_id) || null,
+      })) || [];
     },
     enabled: isAdmin,
   });
