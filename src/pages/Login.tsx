@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Smartphone, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Smartphone, Eye, EyeOff, Loader2, Gift, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+type LoginRole = 'donor' | 'recipient';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn, isDonor, isRecipient, isAdmin } = useAuth();
+  const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<LoginRole>('recipient');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +48,12 @@ export default function Login() {
       description: "You've successfully logged in.",
     });
 
-    // Navigate to role selection page which handles redirect based on roles
-    navigate('/select-role');
+    // Navigate based on selected role
+    if (selectedRole === 'donor') {
+      navigate('/donor/dashboard');
+    } else {
+      navigate('/recipient/dashboard');
+    }
   };
 
   return (
@@ -61,7 +69,63 @@ export default function Login() {
           </Link>
 
           <h1 className="text-3xl font-display font-bold mb-2">Welcome back</h1>
-          <p className="text-muted-foreground mb-8">Sign in to continue your journey</p>
+          <p className="text-muted-foreground mb-6">Sign in to continue your journey</p>
+
+          {/* Role Selection */}
+          <div className="mb-6">
+            <Label className="text-sm font-medium mb-3 block">Sign in as</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedRole('recipient')}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  selectedRole === 'recipient'
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-muted-foreground/50"
+                )}
+              >
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  selectedRole === 'recipient' ? "bg-primary/10" : "bg-muted"
+                )}>
+                  <Star className={cn(
+                    "h-5 w-5",
+                    selectedRole === 'recipient' ? "text-primary" : "text-muted-foreground"
+                  )} />
+                </div>
+                <span className={cn(
+                  "font-medium text-sm",
+                  selectedRole === 'recipient' ? "text-primary" : "text-muted-foreground"
+                )}>Recipient</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedRole('donor')}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                  selectedRole === 'donor'
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-muted-foreground/50"
+                )}
+              >
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  selectedRole === 'donor' ? "bg-primary/10" : "bg-muted"
+                )}>
+                  <Gift className={cn(
+                    "h-5 w-5",
+                    selectedRole === 'donor' ? "text-primary" : "text-muted-foreground"
+                  )} />
+                </div>
+                <span className={cn(
+                  "font-medium text-sm",
+                  selectedRole === 'donor' ? "text-primary" : "text-muted-foreground"
+                )}>Donor</span>
+              </button>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -104,12 +168,12 @@ export default function Login() {
                   Signing in...
                 </>
               ) : (
-                'Sign In'
+                `Sign In as ${selectedRole === 'donor' ? 'Donor' : 'Recipient'}`
               )}
             </Button>
           </form>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-4">
             <Link to="/forgot-password" className="text-sm text-primary hover:underline">
               Forgot password?
             </Link>
