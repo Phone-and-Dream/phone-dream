@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RecipientApplySuccess() {
+  const { user } = useAuth();
+  
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -45,15 +48,25 @@ export default function RecipientApplySuccess() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <Button asChild>
+          {user && (
+            <Button asChild>
+              <Link to="/recipient/dashboard">
+                Go to Dashboard
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          )}
+          <Button variant={user ? "outline" : "default"} asChild>
             <Link to="/dream-board">
               Explore Dream Board
-              <ArrowRight className="ml-2 h-4 w-4" />
+              {!user && <ArrowRight className="ml-2 h-4 w-4" />}
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link to="/">Back to Home</Link>
-          </Button>
+          {!user && (
+            <Button variant="outline" asChild>
+              <Link to="/">Back to Home</Link>
+            </Button>
+          )}
         </div>
       </div>
     </div>

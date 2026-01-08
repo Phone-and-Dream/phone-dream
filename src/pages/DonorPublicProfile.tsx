@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { Share2, Twitter, Linkedin, Copy, Gift, Users, Globe, MapPin, Calendar, Building, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/ui/back-button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { StatCard } from '@/components/ui/stat-card';
@@ -108,6 +109,7 @@ export default function DonorPublicProfile() {
         {/* Hero Section */}
         <div className="relative bg-gradient-to-br from-primary/20 via-accent/10 to-primary/20 py-16">
           <div className="container">
+            <BackButton className="mb-6" />
             <div className="flex flex-col md:flex-row items-center gap-8">
               {/* Avatar */}
               <div className="relative">

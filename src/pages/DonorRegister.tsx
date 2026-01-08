@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Navbar } from '@/components/layout/Navbar';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Check } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
 import type { Database } from '@/integrations/supabase/types';
 
 type DeviceCondition = Database['public']['Enums']['device_condition'];
@@ -95,6 +96,7 @@ export default function DonorRegister() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container py-8 max-w-2xl">
+        <BackButton to={user ? "/donor/dashboard" : "/"} className="mb-4" />
         <h1 className="text-3xl font-display font-bold mb-2">Donate a Device</h1>
         <p className="text-muted-foreground mb-8">Your device can change someone's life</p>
 

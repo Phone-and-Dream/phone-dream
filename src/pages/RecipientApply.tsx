@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle, Loader2 } from 'lucide-react';
+import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -559,6 +560,7 @@ export default function RecipientApply() {
       <Navbar />
       
       <div className="container py-8 max-w-3xl">
+        <BackButton to={user ? "/recipient/dashboard" : "/"} className="mb-4" />
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">Apply for a Device</h1>
           <p className="text-muted-foreground">Tell us about yourself and your dreams</p>

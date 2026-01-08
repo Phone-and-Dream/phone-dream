@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
 import { Share2, Twitter, Linkedin, Link as LinkIcon, Copy, CheckCircle, MapPin, Briefcase, Calendar, Award, BookOpen, FolderOpen, Sparkles, Heart, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/ui/back-button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { RankBadge } from '@/components/ui/rank-badge';
@@ -158,6 +159,7 @@ export default function RecipientPublicProfile() {
           <div className="h-48 md:h-64 bg-gradient-to-br from-primary/30 via-primary/20 to-accent/20" />
           
           <div className="container">
+            <BackButton className="absolute top-4 left-4 md:left-8 bg-background/80 backdrop-blur-sm" />
             <div className="relative -mt-16 pb-6">
               <div className="flex flex-col md:flex-row md:items-end gap-4">
                 <img 

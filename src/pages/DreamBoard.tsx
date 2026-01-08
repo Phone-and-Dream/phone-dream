@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/ui/back-button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Navbar } from '@/components/layout/Navbar';
@@ -64,6 +65,7 @@ export default function DreamBoard() {
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 container py-8">
+        <BackButton className="mb-4" />
         <div className="mb-8">
           <h1 className="text-3xl font-display font-bold mb-2">Dream Board</h1>
           <p className="text-muted-foreground">Browse device requests from verified dreamers</p>

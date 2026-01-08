@@ -1,12 +1,18 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Smartphone, Gift, Star, Loader2 } from 'lucide-react';
+import { Smartphone, Gift, Star, Loader2, LogOut } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function RoleSelection() {
   const navigate = useNavigate();
-  const { user, isLoading, rolesLoaded, isDonor, isRecipient, isAdmin } = useAuth();
+  const { user, isLoading, rolesLoaded, isDonor, isRecipient, isAdmin, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -74,6 +80,12 @@ export default function RoleSelection() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-8">
       <div className="w-full max-w-2xl">
+        <div className="flex justify-end mb-4">
+          <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground">
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign out
+          </Button>
+        </div>
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
