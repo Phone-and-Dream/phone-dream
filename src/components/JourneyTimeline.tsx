@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { formatDate } from '@/lib/mockData';
+import { format } from 'date-fns';
 
 export interface JourneyEvent {
   id: string;
@@ -7,7 +7,7 @@ export interface JourneyEvent {
   title: string;
   description: string;
   icon: string;
-  type: 'application' | 'device' | 'project' | 'milestone';
+  type: 'application' | 'device' | 'project' | 'milestone' | 'device_received' | 'skill_learned' | 'project_completed' | 'course_completed' | 'job_obtained' | 'other';
 }
 
 interface JourneyTimelineProps {
@@ -23,9 +23,14 @@ export function JourneyTimeline({ events, className }: JourneyTimelineProps) {
   const getTypeColor = (type: JourneyEvent['type']) => {
     switch (type) {
       case 'application': return 'bg-primary/20 border-primary';
-      case 'device': return 'bg-accent/20 border-accent';
-      case 'project': return 'bg-blue-500/20 border-blue-500';
-      case 'milestone': return 'bg-amber-500/20 border-amber-500';
+      case 'device': 
+      case 'device_received': return 'bg-accent/20 border-accent';
+      case 'project': 
+      case 'project_completed': return 'bg-blue-500/20 border-blue-500';
+      case 'milestone': 
+      case 'job_obtained': return 'bg-amber-500/20 border-amber-500';
+      case 'skill_learned':
+      case 'course_completed': return 'bg-green-500/20 border-green-500';
       default: return 'bg-muted border-border';
     }
   };
@@ -54,7 +59,7 @@ export function JourneyTimeline({ events, className }: JourneyTimelineProps) {
                   <p className="text-sm text-muted-foreground">{event.description}</p>
                 </div>
                 <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                  {formatDate(event.date)}
+                  {format(new Date(event.date), 'MMM d, yyyy')}
                 </span>
               </div>
             </div>

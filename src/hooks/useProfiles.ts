@@ -194,3 +194,63 @@ export function useLeaderboard(filters?: { country?: string; creatorType?: strin
     },
   });
 }
+
+// Public recipient profile for public profile page
+export function usePublicRecipientProfile(userId?: string) {
+  return useQuery({
+    queryKey: ['public_recipient_profile', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      
+      // Get recipient profile
+      const { data: recipientProfile, error } = await supabase
+        .from('recipient_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!recipientProfile) return null;
+      
+      // Get base profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      return { ...recipientProfile, profile };
+    },
+    enabled: !!userId,
+  });
+}
+
+// Public donor profile for public profile page
+export function usePublicDonorProfile(userId?: string) {
+  return useQuery({
+    queryKey: ['public_donor_profile', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      
+      // Get donor profile
+      const { data: donorProfile, error } = await supabase
+        .from('donor_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!donorProfile) return null;
+      
+      // Get base profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      return { ...donorProfile, profile };
+    },
+    enabled: !!userId,
+  });
+}
