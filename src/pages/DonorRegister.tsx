@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateDonation } from '@/hooks/useDonations';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Navbar } from '@/components/layout/Navbar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type DeviceCondition = Database['public']['Enums']['device_condition'];
@@ -23,10 +23,15 @@ export default function DonorRegister() {
   const [needsRefurbishing, setNeedsRefurbishing] = useState(false);
   const [deviceType, setDeviceType] = useState('');
   const [otherDeviceType, setOtherDeviceType] = useState('');
-  const [condition, setCondition] = useState<DeviceCondition>('used');
+  const [condition, setCondition] = useState<DeviceCondition | ''>('');
   const [deviceSpecs, setDeviceSpecs] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [repairAmount, setRepairAmount] = useState('');
+
+  // Validation
+  const isDeviceTypeValid = deviceType && (deviceType !== 'other' || otherDeviceType.trim().length > 0);
+  const isConditionValid = !!condition;
+  const isFormValid = isDeviceTypeValid && isConditionValid;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +48,10 @@ export default function DonorRegister() {
 
     const finalDeviceType = deviceType === 'other' ? otherDeviceType : deviceType;
 
-    if (!finalDeviceType) {
+    if (!finalDeviceType || !condition) {
       toast({
-        title: "Missing device type",
-        description: "Please select or specify a device type",
+        title: "Missing required fields",
+        description: "Please select device type and condition",
         variant: "destructive",
       });
       return;
@@ -96,7 +101,10 @@ export default function DonorRegister() {
         <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 md:p-8 space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Device Type *</Label>
+              <Label className="flex items-center gap-2">
+                Device Type *
+                {isDeviceTypeValid && <Check className="h-4 w-4 text-accent" />}
+              </Label>
               <Select value={deviceType} onValueChange={setDeviceType}>
                 <SelectTrigger><SelectValue placeholder="Select device" /></SelectTrigger>
                 <SelectContent>
@@ -113,7 +121,10 @@ export default function DonorRegister() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Condition *</Label>
+              <Label className="flex items-center gap-2">
+                Condition *
+                {isConditionValid && <Check className="h-4 w-4 text-accent" />}
+              </Label>
               <Select value={condition} onValueChange={(v) => setCondition(v as DeviceCondition)}>
                 <SelectTrigger><SelectValue placeholder="Select condition" /></SelectTrigger>
                 <SelectContent>
@@ -133,6 +144,9 @@ export default function DonorRegister() {
                 value={otherDeviceType}
                 onChange={(e) => setOtherDeviceType(e.target.value)}
               />
+              {deviceType === 'other' && !otherDeviceType.trim() && (
+                <p className="text-xs text-destructive">Please specify the device type</p>
+              )}
             </div>
           )}
 
@@ -197,13 +211,15 @@ export default function DonorRegister() {
             type="submit" 
             className="w-full" 
             size="lg"
-            disabled={createDonation.isPending}
+            disabled={!isFormValid || createDonation.isPending}
           >
             {createDonation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Submitting...
               </>
+            ) : !isFormValid ? (
+              'Complete required fields'
             ) : (
               'Submit Donation'
             )}

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +45,44 @@ export default function RecipientApply() {
   ]);
   const [letterUploaded, setLetterUploaded] = useState(false);
 
+  // Validation helpers
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const validReferencesCount = useMemo(() => {
+    return references.filter(r => 
+      r.name.trim() && r.relationship.trim() && r.contact.trim()
+    ).length;
+  }, [references]);
+
+  const isStepValid = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return !!(
+          name.trim().length >= 2 &&
+          isValidEmail(email) &&
+          location.trim() &&
+          country &&
+          creatorType &&
+          (creatorType !== 'other' || otherCreatorType.trim())
+        );
+      case 2:
+        return !!(
+          schoolOrCareer &&
+          deviceNeeded &&
+          (deviceNeeded !== 'other' || otherDeviceNeeded.trim()) &&
+          purpose.length >= 100
+        );
+      case 3:
+        return validReferencesCount >= 2;
+      case 4:
+        return true; // Optional step
+      case 5:
+        return isStepValid(1) && isStepValid(2) && isStepValid(3);
+      default:
+        return false;
+    }
+  };
+
   const addReference = () => {
     if (references.length < 3) {
       setReferences([...references, { name: '', relationship: '', contact: '' }]);
@@ -75,16 +113,25 @@ export default function RecipientApply() {
           <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
+                <Label htmlFor="name" className="flex items-center gap-2">
+                  Full Name *
+                  {name.trim().length >= 2 && <Check className="h-4 w-4 text-accent" />}
+                </Label>
                 <Input 
                   id="name" 
                   placeholder="Your full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
+                {name && name.trim().length < 2 && (
+                  <p className="text-xs text-destructive">Name must be at least 2 characters</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email" className="flex items-center gap-2">
+                  Email *
+                  {isValidEmail(email) && <Check className="h-4 w-4 text-accent" />}
+                </Label>
                 <Input 
                   id="email" 
                   type="email"
@@ -92,11 +139,17 @@ export default function RecipientApply() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
+                {email && !isValidEmail(email) && (
+                  <p className="text-xs text-destructive">Please enter a valid email</p>
+                )}
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="location">City/Town *</Label>
+                <Label htmlFor="location" className="flex items-center gap-2">
+                  City/Town *
+                  {location.trim() && <Check className="h-4 w-4 text-accent" />}
+                </Label>
                 <Input 
                   id="location" 
                   placeholder="e.g., Lagos"
@@ -105,7 +158,10 @@ export default function RecipientApply() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="country">Country *</Label>
+                <Label htmlFor="country" className="flex items-center gap-2">
+                  Country *
+                  {country && <Check className="h-4 w-4 text-accent" />}
+                </Label>
                 <Select value={country} onValueChange={setCountry}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select country" />
@@ -125,7 +181,10 @@ export default function RecipientApply() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="creatorType">What type of creator are you? *</Label>
+              <Label htmlFor="creatorType" className="flex items-center gap-2">
+                What type of creator are you? *
+                {creatorType && (creatorType !== 'other' || otherCreatorType.trim()) && <Check className="h-4 w-4 text-accent" />}
+              </Label>
               <Select value={creatorType} onValueChange={setCreatorType}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select your creator type" />
@@ -149,6 +208,9 @@ export default function RecipientApply() {
                   value={otherCreatorType}
                   onChange={(e) => setOtherCreatorType(e.target.value)}
                 />
+                {!otherCreatorType.trim() && (
+                  <p className="text-xs text-destructive">Please specify your creator type</p>
+                )}
               </div>
             )}
           </div>
@@ -159,7 +221,10 @@ export default function RecipientApply() {
           <div className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="schoolOrCareer">School or Career Status *</Label>
+                <Label htmlFor="schoolOrCareer" className="flex items-center gap-2">
+                  School or Career Status *
+                  {schoolOrCareer && <Check className="h-4 w-4 text-accent" />}
+                </Label>
                 <Select value={schoolOrCareer} onValueChange={setSchoolOrCareer}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
@@ -185,7 +250,10 @@ export default function RecipientApply() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="deviceNeeded">What device do you need? *</Label>
+              <Label htmlFor="deviceNeeded" className="flex items-center gap-2">
+                What device do you need? *
+                {deviceNeeded && (deviceNeeded !== 'other' || otherDeviceNeeded.trim()) && <Check className="h-4 w-4 text-accent" />}
+              </Label>
               <Select value={deviceNeeded} onValueChange={setDeviceNeeded}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select device type" />
@@ -208,10 +276,16 @@ export default function RecipientApply() {
                   value={otherDeviceNeeded}
                   onChange={(e) => setOtherDeviceNeeded(e.target.value)}
                 />
+                {!otherDeviceNeeded.trim() && (
+                  <p className="text-xs text-destructive">Please specify the device</p>
+                )}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="purpose">Tell us your story and why you need this device *</Label>
+              <Label htmlFor="purpose" className="flex items-center gap-2">
+                Tell us your story and why you need this device *
+                {purpose.length >= 100 && <Check className="h-4 w-4 text-accent" />}
+              </Label>
               <Textarea 
                 id="purpose"
                 placeholder="Share your dreams, goals, and how a device would help you achieve them..."
@@ -219,7 +293,13 @@ export default function RecipientApply() {
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Minimum 100 characters. Be specific about your goals and how you'll use the device.</p>
+              <p className={cn(
+                "text-xs",
+                purpose.length >= 100 ? "text-accent" : "text-muted-foreground"
+              )}>
+                {purpose.length}/100 characters minimum
+                {purpose.length < 100 && ` (${100 - purpose.length} more needed)`}
+              </p>
             </div>
           </div>
         );
@@ -227,51 +307,68 @@ export default function RecipientApply() {
       case 3:
         return (
           <div className="space-y-6">
-            <p className="text-muted-foreground">
-              Please provide 2-3 references who can vouch for your application.
-            </p>
-            {references.map((ref, index) => (
-              <div key={index} className="p-4 border border-border rounded-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">Reference {index + 1}</h4>
-                  {references.length > 2 && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => removeReference(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  )}
+            <div className="flex items-center justify-between">
+              <p className="text-muted-foreground">
+                Please provide 2-3 references who can vouch for your application.
+              </p>
+              <span className={cn(
+                "text-sm font-medium px-2 py-1 rounded",
+                validReferencesCount >= 2 ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
+              )}>
+                {validReferencesCount}/2 complete
+              </span>
+            </div>
+            {references.map((ref, index) => {
+              const isComplete = ref.name.trim() && ref.relationship.trim() && ref.contact.trim();
+              return (
+                <div key={index} className={cn(
+                  "p-4 border rounded-xl space-y-4",
+                  isComplete ? "border-accent/50 bg-accent/5" : "border-border"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium flex items-center gap-2">
+                      Reference {index + 1}
+                      {isComplete && <Check className="h-4 w-4 text-accent" />}
+                    </h4>
+                    {references.length > 2 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => removeReference(index)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Name *</Label>
+                      <Input 
+                        placeholder="Reference name"
+                        value={ref.name}
+                        onChange={(e) => updateReference(index, 'name', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Relationship *</Label>
+                      <Input 
+                        placeholder="e.g., Lecturer, Mentor"
+                        value={ref.relationship}
+                        onChange={(e) => updateReference(index, 'relationship', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Contact (Email/Phone) *</Label>
+                      <Input 
+                        placeholder="Email or phone"
+                        value={ref.contact}
+                        onChange={(e) => updateReference(index, 'contact', e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Name *</Label>
-                    <Input 
-                      placeholder="Reference name"
-                      value={ref.name}
-                      onChange={(e) => updateReference(index, 'name', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Relationship *</Label>
-                    <Input 
-                      placeholder="e.g., Lecturer, Mentor"
-                      value={ref.relationship}
-                      onChange={(e) => updateReference(index, 'relationship', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Contact (Email/Phone) *</Label>
-                    <Input 
-                      placeholder="Email or phone"
-                      value={ref.contact}
-                      onChange={(e) => updateReference(index, 'contact', e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             {references.length < 3 && (
               <Button variant="outline" onClick={addReference} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
@@ -308,6 +405,14 @@ export default function RecipientApply() {
                 </>
               )}
             </div>
+            {!letterUploaded && (
+              <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  While optional, uploading a reference letter significantly increases your chances of approval.
+                </p>
+              </div>
+            )}
           </div>
         );
 
@@ -331,15 +436,15 @@ export default function RecipientApply() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Creator Type</dt>
-                  <dd className="font-medium capitalize">{creatorType || 'Not provided'}</dd>
+                  <dd className="font-medium capitalize">{creatorType === 'other' ? otherCreatorType : creatorType || 'Not provided'}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Device Needed</dt>
-                  <dd className="font-medium capitalize">{deviceNeeded || 'Not provided'}</dd>
+                  <dd className="font-medium capitalize">{deviceNeeded === 'other' ? otherDeviceNeeded : deviceNeeded || 'Not provided'}</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">References</dt>
-                  <dd className="font-medium">{references.filter(r => r.name).length} provided</dd>
+                  <dd className="font-medium">{validReferencesCount} provided</dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Reference Letter</dt>
@@ -424,12 +529,18 @@ export default function RecipientApply() {
           </Button>
 
           {currentStep < steps.length ? (
-            <Button onClick={() => setCurrentStep(currentStep + 1)}>
-              Next
+            <Button 
+              onClick={() => setCurrentStep(currentStep + 1)}
+              disabled={!isStepValid(currentStep)}
+            >
+              {!isStepValid(currentStep) ? 'Complete required fields' : 'Next'}
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit}>
+            <Button 
+              onClick={handleSubmit}
+              disabled={!isStepValid(5)}
+            >
               Submit Application
             </Button>
           )}
