@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Edit2, Plus, Search, Minus } from 'lucide-react';
+import { Edit2, Plus, Search, Minus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -19,19 +20,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  mockXPRules,
-  mockRankThresholds,
-  mockXPAdjustments,
-  mockRecipients,
-  type XPRule,
-  type XPAdjustment,
-} from '@/lib/mockData';
+import { useXPRules, useUpdateXPRule, useCreateXPTransaction, useXPTransactions, useAllRecipientProfiles } from '@/hooks/useAdminData';
 import { toast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+type XPRule = Database['public']['Tables']['xp_rules']['Row'];
+
+const rankThresholds = [
+  { rank: 'Bronze', minXP: 0, maxXP: 499, icon: '🥉' },
+  { rank: 'Silver', minXP: 500, maxXP: 1999, icon: '🥈' },
+  { rank: 'Gold', minXP: 2000, maxXP: 4999, icon: '🥇' },
+  { rank: 'Platinum', minXP: 5000, maxXP: null, icon: '💎' },
+];
 
 export function XPRulesManager() {
-  const [rules, setRules] = useState(mockXPRules);
-  const [adjustments, setAdjustments] = useState(mockXPAdjustments);
+  const { data: rules = [], isLoading: rulesLoading } = useXPRules();
+  const { data: transactions = [], isLoading: transactionsLoading } = useXPTransactions();
+  const { data: recipientProfiles = [] } = useAllRecipientProfiles();
+  const updateXPRule = useUpdateXPRule();
+  const createXPTransaction = useCreateXPTransaction();
+
   const [editingRule, setEditingRule] = useState<XPRule | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -42,8 +50,8 @@ export function XPRulesManager() {
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [isPositive, setIsPositive] = useState(true);
 
-  const filteredRecipients = mockRecipients.filter(r =>
-    r.name.toLowerCase().includes(searchRecipient.toLowerCase())
+  const filteredRecipients = recipientProfiles.filter(r =>
+    r.profile?.full_name?.toLowerCase().includes(searchRecipient.toLowerCase())
   );
 
   const handleEditRule = (rule: XPRule) => {
@@ -51,18 +59,31 @@ export function XPRulesManager() {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveRule = () => {
+  const handleSaveRule = async () => {
     if (editingRule) {
-      setRules(rules.map(r => r.id === editingRule.id ? editingRule : r));
-      setIsEditModalOpen(false);
-      toast({
-        title: 'Rule Updated',
-        description: `${editingRule.action} now awards ${editingRule.xpValue} XP`,
-      });
+      try {
+        await updateXPRule.mutateAsync({
+          id: editingRule.id,
+          xp_value: editingRule.xp_value,
+          description: editingRule.description,
+          is_active: editingRule.is_active,
+        });
+        setIsEditModalOpen(false);
+        toast({
+          title: 'Rule Updated',
+          description: `${editingRule.action} now awards ${editingRule.xp_value} XP`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update rule',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
-  const handleApplyAdjustment = () => {
+  const handleApplyAdjustment = async () => {
     if (!selectedRecipient || !adjustmentAmount || !adjustmentReason) {
       toast({
         title: 'Missing Fields',
@@ -72,31 +93,43 @@ export function XPRulesManager() {
       return;
     }
 
-    const recipient = mockRecipients.find(r => r.id === selectedRecipient);
+    const recipient = recipientProfiles.find(r => r.user_id === selectedRecipient);
     if (!recipient) return;
 
     const amount = isPositive ? parseInt(adjustmentAmount) : -parseInt(adjustmentAmount);
-    const newAdjustment: XPAdjustment = {
-      id: `adj${adjustments.length + 1}`,
-      recipientId: selectedRecipient,
-      recipientName: recipient.name,
-      amount,
-      reason: adjustmentReason,
-      adminName: 'Admin',
-      date: new Date().toISOString().split('T')[0],
-    };
+    
+    try {
+      await createXPTransaction.mutateAsync({
+        recipient_id: selectedRecipient,
+        amount,
+        description: adjustmentReason,
+      });
 
-    setAdjustments([newAdjustment, ...adjustments]);
-    setSearchRecipient('');
-    setSelectedRecipient(null);
-    setAdjustmentAmount('');
-    setAdjustmentReason('');
+      setSearchRecipient('');
+      setSelectedRecipient(null);
+      setAdjustmentAmount('');
+      setAdjustmentReason('');
 
-    toast({
-      title: 'XP Adjusted',
-      description: `${amount > 0 ? '+' : ''}${amount} XP applied to ${recipient.name}`,
-    });
+      toast({
+        title: 'XP Adjusted',
+        description: `${amount > 0 ? '+' : ''}${amount} XP applied to ${recipient.profile?.full_name || 'recipient'}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to apply XP adjustment',
+        variant: 'destructive',
+      });
+    }
   };
+
+  if (rulesLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -120,18 +153,18 @@ export function XPRulesManager() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rules.map((rule) => (
+            {rules.length > 0 ? rules.map((rule) => (
               <TableRow key={rule.id}>
                 <TableCell className="font-medium">{rule.action}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="bg-primary/10 text-primary">
-                    +{rule.xpValue} XP
+                    +{rule.xp_value} XP
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{rule.description}</TableCell>
                 <TableCell>
-                  <Badge variant={rule.isActive ? 'default' : 'secondary'}>
-                    {rule.isActive ? 'Active' : 'Inactive'}
+                  <Badge variant={rule.is_active ? 'default' : 'secondary'}>
+                    {rule.is_active ? 'Active' : 'Inactive'}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -140,7 +173,13 @@ export function XPRulesManager() {
                   </Button>
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  No XP rules configured
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
@@ -149,7 +188,7 @@ export function XPRulesManager() {
       <div className="glass-card rounded-xl p-6">
         <h2 className="font-semibold mb-4">Rank Thresholds</h2>
         <div className="grid md:grid-cols-4 gap-4">
-          {mockRankThresholds.map((rank) => (
+          {rankThresholds.map((rank) => (
             <div key={rank.rank} className="border rounded-lg p-4 text-center">
               <span className="text-3xl mb-2 block">{rank.icon}</span>
               <p className="font-semibold">{rank.rank}</p>
@@ -179,20 +218,22 @@ export function XPRulesManager() {
               </div>
               {searchRecipient && (
                 <div className="mt-2 border rounded-lg max-h-32 overflow-y-auto">
-                  {filteredRecipients.map((r) => (
+                  {filteredRecipients.length > 0 ? filteredRecipients.map((r) => (
                     <div
                       key={r.id}
                       onClick={() => {
-                        setSelectedRecipient(r.id);
-                        setSearchRecipient(r.name);
+                        setSelectedRecipient(r.user_id);
+                        setSearchRecipient(r.profile?.full_name || 'Unknown');
                       }}
                       className={`p-2 cursor-pointer hover:bg-muted ${
-                        selectedRecipient === r.id ? 'bg-primary/10' : ''
+                        selectedRecipient === r.user_id ? 'bg-primary/10' : ''
                       }`}
                     >
-                      {r.name} - {r.xp} XP
+                      {r.profile?.full_name || 'Unknown'} - {r.xp} XP
                     </div>
-                  ))}
+                  )) : (
+                    <div className="p-2 text-muted-foreground text-sm">No recipients found</div>
+                  )}
                 </div>
               )}
             </div>
@@ -234,7 +275,8 @@ export function XPRulesManager() {
               />
             </div>
 
-            <Button onClick={handleApplyAdjustment} className="w-full">
+            <Button onClick={handleApplyAdjustment} className="w-full" disabled={createXPTransaction.isPending}>
+              {createXPTransaction.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Apply Adjustment
             </Button>
           </div>
@@ -242,18 +284,26 @@ export function XPRulesManager() {
           <div>
             <label className="text-sm font-medium mb-2 block">Recent Adjustments</label>
             <div className="border rounded-lg divide-y max-h-64 overflow-y-auto">
-              {adjustments.map((adj) => (
+              {transactionsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              ) : transactions.length > 0 ? transactions.map((adj) => (
                 <div key={adj.id} className="p-3">
                   <div className="flex justify-between">
-                    <span className="font-medium">{adj.recipientName}</span>
+                    <span className="font-medium text-sm">Transaction</span>
                     <Badge variant={adj.amount > 0 ? 'default' : 'destructive'}>
                       {adj.amount > 0 ? '+' : ''}{adj.amount} XP
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{adj.reason}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{adj.date}</p>
+                  <p className="text-sm text-muted-foreground">{adj.description || 'No reason provided'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(adj.created_at).toLocaleDateString()}
+                  </p>
                 </div>
-              ))}
+              )) : (
+                <div className="p-3 text-sm text-muted-foreground">No recent adjustments</div>
+              )}
             </div>
           </div>
         </div>
@@ -276,22 +326,32 @@ export function XPRulesManager() {
                 <label className="text-sm font-medium">XP Value</label>
                 <Input
                   type="number"
-                  value={editingRule.xpValue}
-                  onChange={(e) => setEditingRule({ ...editingRule, xpValue: parseInt(e.target.value) || 0 })}
+                  value={editingRule.xp_value}
+                  onChange={(e) => setEditingRule({ ...editingRule, xp_value: parseInt(e.target.value) || 0 })}
                   className="mt-1"
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Description</label>
                 <Input
-                  value={editingRule.description}
+                  value={editingRule.description || ''}
                   onChange={(e) => setEditingRule({ ...editingRule, description: e.target.value })}
                   className="mt-1"
                 />
               </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={editingRule.is_active}
+                  onCheckedChange={(checked) => setEditingRule({ ...editingRule, is_active: checked })}
+                />
+                <label className="text-sm font-medium">Active</label>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleSaveRule}>Save Changes</Button>
+                <Button onClick={handleSaveRule} disabled={updateXPRule.isPending}>
+                  {updateXPRule.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Save Changes
+                </Button>
               </div>
             </div>
           )}
