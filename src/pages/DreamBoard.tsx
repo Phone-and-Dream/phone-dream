@@ -7,17 +7,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { RankBadge } from '@/components/ui/rank-badge';
-import { mockDreamRequests, formatDate } from '@/lib/mockData';
+import { DonationModal } from '@/components/DonationModal';
+import { mockDreamRequests, formatDate, DreamRequest } from '@/lib/mockData';
 
 export default function DreamBoard() {
   const [search, setSearch] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('all');
+  const [selectedRequest, setSelectedRequest] = useState<DreamRequest | null>(null);
+  const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
 
   const filteredRequests = mockDreamRequests.filter(req => {
     const matchesSearch = req.recipientName.toLowerCase().includes(search.toLowerCase()) || req.purpose.toLowerCase().includes(search.toLowerCase());
     const matchesDevice = deviceFilter === 'all' || req.deviceNeeded.toLowerCase() === deviceFilter;
     return matchesSearch && matchesDevice;
   });
+
+  const handleDonateClick = (request: DreamRequest) => {
+    setSelectedRequest(request);
+    setIsDonationModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -59,11 +67,14 @@ export default function DreamBoard() {
               <div className="mb-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Needs</p>
                 <p className="font-semibold text-primary">{request.deviceNeeded}</p>
+                {request.needsRefurbishing && (
+                  <p className="text-xs text-amber-600 mt-0.5">✨ Open to refurbished</p>
+                )}
               </div>
               <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{request.purpose}</p>
               <div className="flex items-center justify-between pt-4 border-t border-border">
                 <span className="text-xs text-muted-foreground">{formatDate(request.datePosted)}</span>
-                <Button size="sm">
+                <Button size="sm" onClick={() => handleDonateClick(request)}>
                   <Heart className="h-4 w-4 mr-1" /> Donate
                 </Button>
               </div>
@@ -72,6 +83,13 @@ export default function DreamBoard() {
         </div>
       </main>
       <Footer />
+
+      {/* Donation Modal */}
+      <DonationModal 
+        request={selectedRequest} 
+        isOpen={isDonationModalOpen} 
+        onClose={() => setIsDonationModalOpen(false)} 
+      />
     </div>
   );
 }
