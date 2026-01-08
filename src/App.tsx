@@ -19,6 +19,7 @@ import DreamBoard from "./pages/DreamBoard";
 import Leaderboard from "./pages/Leaderboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import RoleSelection from "./pages/RoleSelection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/select-role" element={<RoleSelection />} />
             <Route path="/recipient/apply" element={<RecipientApply />} />
             <Route path="/recipient/apply/success" element={<RecipientApplySuccess />} />
             <Route path="/recipient/dashboard" element={

@@ -44,9 +44,8 @@ export default function Login() {
       description: "You've successfully logged in.",
     });
 
-    // Navigate based on role - will be handled by useEffect after roles load
-    // For now, navigate to home and let protected routes handle redirect
-    navigate('/');
+    // Navigate to role selection page which handles redirect based on roles
+    navigate('/select-role');
   };
 
   return (
