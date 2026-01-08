@@ -162,3 +162,68 @@ export function useUpdateDonation() {
     },
   });
 }
+
+// Fetch all donations for a specific donor (public profile)
+export function useDonorDonations(donorId?: string) {
+  return useQuery({
+    queryKey: ['donor_donations', donorId],
+    queryFn: async () => {
+      if (!donorId) return [];
+      
+      // Get donations
+      const { data: donations, error: donationsError } = await supabase
+        .from('donations')
+        .select(`*, attestation:attestations(*)`)
+        .eq('donor_id', donorId)
+        .order('created_at', { ascending: false });
+      
+      if (donationsError) throw donationsError;
+      
+      // Get recipient profiles for matched donations
+      const recipientIds = donations?.map(d => d.matched_recipient_id).filter(Boolean) || [];
+      if (recipientIds.length === 0) return donations?.map(d => ({ ...d, recipient: null })) || [];
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', recipientIds);
+      
+      return donations?.map(d => ({
+        ...d,
+        recipient: profiles?.find(p => p.id === d.matched_recipient_id) || null,
+      })) || [];
+    },
+    enabled: !!donorId,
+  });
+}
+
+// Fetch delivered donation for a recipient (public profile)
+export function useRecipientReceivedDonation(recipientId?: string) {
+  return useQuery({
+    queryKey: ['recipient_received_donation', recipientId],
+    queryFn: async () => {
+      if (!recipientId) return null;
+      
+      // Get the donation
+      const { data: donation, error } = await supabase
+        .from('donations')
+        .select(`*, attestation:attestations(*)`)
+        .eq('matched_recipient_id', recipientId)
+        .eq('status', 'delivered')
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!donation) return null;
+      
+      // Get donor profile
+      const { data: donorProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', donation.donor_id)
+        .maybeSingle();
+      
+      return { ...donation, donor: donorProfile };
+    },
+    enabled: !!recipientId,
+  });
+}

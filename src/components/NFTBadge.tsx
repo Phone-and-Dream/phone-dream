@@ -13,7 +13,7 @@ interface NFTBadgeProps {
   recipientName: string;
   recipientId: string;
   deviceType: string;
-  condition: 'New' | 'Refurbished';
+  condition: 'new' | 'used' | 'refurbished' | 'New' | 'Refurbished';
   txHash: string;
   date: string;
   linkTo?: 'donor' | 'recipient';
@@ -129,8 +129,8 @@ export function NFTBadge({
               {deviceType}
             </p>
             <span className={cn(
-              "mt-1 px-2 py-0.5 rounded-full font-medium",
-              condition === 'New' 
+              "mt-1 px-2 py-0.5 rounded-full font-medium capitalize",
+              condition.toLowerCase() === 'new' 
                 ? "bg-accent/20 text-accent" 
                 : "bg-primary/20 text-primary"
             )} style={{ fontSize: '0.6rem' }}>
