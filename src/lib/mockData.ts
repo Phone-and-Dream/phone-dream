@@ -149,6 +149,8 @@ export interface Donation {
   status: 'Pending' | 'Matched' | 'Delivered';
   date: string;
   txHash?: string;
+  donorId?: string;
+  donorName?: string;
 }
 
 export interface DreamRequest {
@@ -180,12 +182,57 @@ export interface Application {
   referenceLetterUrl: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedDate: string;
+  referencesValidated?: boolean[];
 }
 
 export interface Reference {
   name: string;
   relationship: string;
   contact: string;
+  isValidated?: boolean;
+}
+
+export interface XPRule {
+  id: string;
+  action: string;
+  xpValue: number;
+  description: string;
+  isActive: boolean;
+}
+
+export interface RankThreshold {
+  rank: 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
+  minXP: number;
+  maxXP: number | null;
+  icon: string;
+}
+
+export interface AttestationLog {
+  id: string;
+  txHash: string;
+  deviceType: string;
+  donorName: string;
+  recipientName: string;
+  date: string;
+  network: string;
+}
+
+export interface XPAdjustment {
+  id: string;
+  recipientId: string;
+  recipientName: string;
+  amount: number;
+  reason: string;
+  adminName: string;
+  date: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  type: 'application' | 'donation' | 'match' | 'delivery' | 'approval';
+  description: string;
+  timestamp: string;
+  user?: string;
 }
 
 // Mock Data
@@ -402,10 +449,10 @@ export const mockDonors: Donor[] = [
       regionsReached: 8
     },
     donations: [
-      { id: 'don1', deviceType: 'MacBook Air M1', condition: 'Refurbished', recipientName: 'Amara Okonkwo', recipientId: '1', status: 'Delivered', date: '2024-04-18', txHash: '0x7a3b...9f2c' },
-      { id: 'don2', deviceType: 'MacBook Pro 14"', condition: 'New', recipientName: 'Kwame Asante', recipientId: '5', status: 'Delivered', date: '2024-03-10', txHash: '0x9c2e...4f1a' },
-      { id: 'don3', deviceType: 'ThinkPad X1 Carbon', condition: 'Refurbished', status: 'Matched', date: '2024-11-20' },
-      { id: 'don4', deviceType: 'MacBook Air M2', condition: 'New', status: 'Pending', date: '2024-11-28' },
+      { id: 'don1', deviceType: 'MacBook Air M1', condition: 'Refurbished', recipientName: 'Amara Okonkwo', recipientId: '1', status: 'Delivered', date: '2024-04-18', txHash: '0x7a3b...9f2c', donorId: 'd1', donorName: 'Tech Forward Foundation' },
+      { id: 'don2', deviceType: 'MacBook Pro 14"', condition: 'New', recipientName: 'Kwame Asante', recipientId: '5', status: 'Delivered', date: '2024-03-10', txHash: '0x9c2e...4f1a', donorId: 'd1', donorName: 'Tech Forward Foundation' },
+      { id: 'don3', deviceType: 'ThinkPad X1 Carbon', condition: 'Refurbished', status: 'Matched', date: '2024-11-20', donorId: 'd1', donorName: 'Tech Forward Foundation' },
+      { id: 'don4', deviceType: 'MacBook Air M2', condition: 'New', status: 'Pending', date: '2024-11-28', donorId: 'd1', donorName: 'Tech Forward Foundation' },
     ]
   },
   {
@@ -421,8 +468,8 @@ export const mockDonors: Donor[] = [
       regionsReached: 6
     },
     donations: [
-      { id: 'don1', deviceType: 'iPad Pro 12.9"', condition: 'New', recipientName: 'David Mensah', recipientId: '2', status: 'Delivered', date: '2024-02-12', txHash: '0x8b4c...3e1d' },
-      { id: 'don2', deviceType: 'Wacom Tablet', condition: 'New', recipientName: 'Grace Adeyemi', recipientId: '6', status: 'Delivered', date: '2024-05-08', txHash: '0x2d5f...7b3c' },
+      { id: 'don5', deviceType: 'iPad Pro 12.9"', condition: 'New', recipientName: 'David Mensah', recipientId: '2', status: 'Delivered', date: '2024-02-12', txHash: '0x8b4c...3e1d', donorId: 'd2', donorName: 'Creative Futures Initiative' },
+      { id: 'don6', deviceType: 'Wacom Tablet', condition: 'New', recipientName: 'Grace Adeyemi', recipientId: '6', status: 'Delivered', date: '2024-05-08', txHash: '0x2d5f...7b3c', donorId: 'd2', donorName: 'Creative Futures Initiative' },
     ]
   },
   {
@@ -438,8 +485,8 @@ export const mockDonors: Donor[] = [
       regionsReached: 2
     },
     donations: [
-      { id: 'don1', deviceType: 'iPhone 12', condition: 'Refurbished', recipientName: 'Samuel Otieno', recipientId: '7', status: 'Delivered', date: '2024-06-15', txHash: '0x4e8a...2c9f' },
-      { id: 'don2', deviceType: 'Samsung Galaxy Tab', condition: 'Refurbished', status: 'Matched', date: '2024-10-30' },
+      { id: 'don7', deviceType: 'iPhone 12', condition: 'Refurbished', recipientName: 'Samuel Otieno', recipientId: '7', status: 'Delivered', date: '2024-06-15', txHash: '0x4e8a...2c9f', donorId: 'd3', donorName: 'Michael Chen' },
+      { id: 'don8', deviceType: 'Samsung Galaxy Tab', condition: 'Refurbished', status: 'Matched', date: '2024-10-30', donorId: 'd3', donorName: 'Michael Chen' },
     ]
   },
   {
@@ -455,7 +502,7 @@ export const mockDonors: Donor[] = [
       regionsReached: 0
     },
     donations: [
-      { id: 'don1', deviceType: 'Dell XPS 13', condition: 'New', status: 'Pending', date: '2024-11-25' },
+      { id: 'don9', deviceType: 'Dell XPS 13', condition: 'New', status: 'Pending', date: '2024-11-25', donorId: 'd4', donorName: 'Sarah Williams' },
     ]
   }
 ];
@@ -594,8 +641,8 @@ export const mockApplications: Application[] = [
     institution: 'Technical University of Mombasa',
     purpose: 'I want to build apps that help local fishermen track weather patterns and market prices.',
     references: [
-      { name: 'Prof. John Kamau', relationship: 'Lecturer', contact: 'j.kamau@tum.ac.ke' },
-      { name: 'Mary Wanjiku', relationship: 'Community Leader', contact: '+254712345678' }
+      { name: 'Prof. John Kamau', relationship: 'Lecturer', contact: 'j.kamau@tum.ac.ke', isValidated: true },
+      { name: 'Mary Wanjiku', relationship: 'Community Leader', contact: '+254712345678', isValidated: false }
     ],
     referenceLetterUrl: '#',
     status: 'pending',
@@ -611,8 +658,8 @@ export const mockApplications: Application[] = [
     institution: 'Self-taught',
     purpose: 'I design visuals for local NGOs and small businesses. A better device would help me take on international clients.',
     references: [
-      { name: 'Aminata Sow', relationship: 'Former Client', contact: 'aminata@ngo.org' },
-      { name: 'Ousmane Fall', relationship: 'Mentor', contact: '+221771234567' }
+      { name: 'Aminata Sow', relationship: 'Former Client', contact: 'aminata@ngo.org', isValidated: false },
+      { name: 'Ousmane Fall', relationship: 'Mentor', contact: '+221771234567', isValidated: false }
     ],
     referenceLetterUrl: '#',
     status: 'pending',
@@ -628,13 +675,52 @@ export const mockApplications: Application[] = [
     institution: 'N/A',
     purpose: 'I create cooking content showcasing Nigerian cuisine. Need better equipment to improve video quality.',
     references: [
-      { name: 'Chidi Okonkwo', relationship: 'Collaborator', contact: 'chidi@youtube.com' },
-      { name: 'Ada Eze', relationship: 'Subscriber/Fan', contact: 'ada.eze@email.com' }
+      { name: 'Chidi Okonkwo', relationship: 'Collaborator', contact: 'chidi@youtube.com', isValidated: false },
+      { name: 'Ada Eze', relationship: 'Subscriber/Fan', contact: 'ada.eze@email.com', isValidated: false }
     ],
     referenceLetterUrl: '#',
     status: 'pending',
     submittedDate: '2024-11-24'
   }
+];
+
+export const mockXPRules: XPRule[] = [
+  { id: 'xp1', action: 'Course Completed', xpValue: 100, description: 'Finish an online course with certificate', isActive: true },
+  { id: 'xp2', action: 'Project Completed', xpValue: 150, description: 'Complete and deploy a project', isActive: true },
+  { id: 'xp3', action: 'Skill Verified', xpValue: 50, description: 'Get a skill verified by community', isActive: true },
+  { id: 'xp4', action: 'Community Joined', xpValue: 25, description: 'Join a professional community', isActive: true },
+  { id: 'xp5', action: 'Recommendation Received', xpValue: 75, description: 'Receive a recommendation from peer or mentor', isActive: true },
+  { id: 'xp6', action: 'Career Event Added', xpValue: 30, description: 'Add a career milestone to journey', isActive: true },
+  { id: 'xp7', action: 'First Income Earned', xpValue: 200, description: 'Earn first income using skills', isActive: true },
+  { id: 'xp8', action: 'Mentored Peer', xpValue: 100, description: 'Help another recipient learn', isActive: true },
+];
+
+export const mockRankThresholds: RankThreshold[] = [
+  { rank: 'Bronze', minXP: 0, maxXP: 999, icon: '🥉' },
+  { rank: 'Silver', minXP: 1000, maxXP: 1999, icon: '🥈' },
+  { rank: 'Gold', minXP: 2000, maxXP: 2999, icon: '🥇' },
+  { rank: 'Platinum', minXP: 3000, maxXP: null, icon: '💎' },
+];
+
+export const mockAttestationLogs: AttestationLog[] = [
+  { id: 'att1', txHash: '0x7a3b...9f2c', deviceType: 'MacBook Air M1', donorName: 'Tech Forward Foundation', recipientName: 'Amara Okonkwo', date: '2024-04-20', network: 'Optimism' },
+  { id: 'att2', txHash: '0x8b4c...3e1d', deviceType: 'iPad Pro 12.9"', donorName: 'Creative Futures Initiative', recipientName: 'David Mensah', date: '2024-02-15', network: 'Optimism' },
+  { id: 'att3', txHash: '0x9c2e...4f1a', deviceType: 'MacBook Pro 14"', donorName: 'Tech Forward Foundation', recipientName: 'Kwame Asante', date: '2024-03-10', network: 'Optimism' },
+  { id: 'att4', txHash: '0x2d5f...7b3c', deviceType: 'Wacom Tablet', donorName: 'Creative Futures Initiative', recipientName: 'Grace Adeyemi', date: '2024-05-08', network: 'Optimism' },
+  { id: 'att5', txHash: '0x4e8a...2c9f', deviceType: 'iPhone 12', donorName: 'Michael Chen', recipientName: 'Samuel Otieno', date: '2024-06-15', network: 'Optimism' },
+];
+
+export const mockXPAdjustments: XPAdjustment[] = [
+  { id: 'adj1', recipientId: '1', recipientName: 'Amara Okonkwo', amount: 50, reason: 'Bonus for exceptional project quality', adminName: 'Admin', date: '2024-10-15' },
+  { id: 'adj2', recipientId: '2', recipientName: 'David Mensah', amount: 100, reason: 'Community contribution award', adminName: 'Admin', date: '2024-11-01' },
+];
+
+export const mockActivityLogs: ActivityLog[] = [
+  { id: 'act1', type: 'application', description: 'Grace Mwangi submitted application', timestamp: '2024-11-26T10:30:00Z', user: 'Grace Mwangi' },
+  { id: 'act2', type: 'donation', description: 'Sarah Williams donated Dell XPS 13', timestamp: '2024-11-25T14:15:00Z', user: 'Sarah Williams' },
+  { id: 'act3', type: 'match', description: 'ThinkPad X1 matched to recipient', timestamp: '2024-11-20T09:00:00Z' },
+  { id: 'act4', type: 'approval', description: 'Yusuf Diallo application under review', timestamp: '2024-11-25T16:45:00Z' },
+  { id: 'act5', type: 'delivery', description: 'MacBook Air delivered to Amara', timestamp: '2024-04-20T11:00:00Z', user: 'Tech Forward Foundation' },
 ];
 
 // Helper functions
@@ -672,4 +758,15 @@ export const calculateDaysSince = (dateString: string): number => {
   const now = new Date();
   const diffTime = Math.abs(now.getTime() - date.getTime());
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+// Get all donations flattened from all donors
+export const getAllDonations = (): Donation[] => {
+  return mockDonors.flatMap(donor => 
+    donor.donations.map(d => ({
+      ...d,
+      donorId: donor.id,
+      donorName: donor.name
+    }))
+  );
 };
