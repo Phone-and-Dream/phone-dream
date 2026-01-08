@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink } from 'lucide-react';
+import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RankBadge } from '@/components/ui/rank-badge';
@@ -16,6 +16,8 @@ import { AddProjectModal } from '@/components/AddProjectModal';
 import { EditSkillModal } from '@/components/EditSkillModal';
 import { EditCourseModal } from '@/components/EditCourseModal';
 import { EditProjectModal } from '@/components/EditProjectModal';
+import { EditCareerEventModal } from '@/components/EditCareerEventModal';
+import { EditRecipientProfileModal } from '@/components/EditRecipientProfileModal';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -32,6 +34,7 @@ import type { Database } from '@/integrations/supabase/types';
 type Skill = Database['public']['Tables']['skills']['Row'];
 type Course = Database['public']['Tables']['courses']['Row'];
 type Project = Database['public']['Tables']['projects']['Row'];
+type CareerEvent = Database['public']['Tables']['career_events']['Row'];
 
 export default function RecipientDashboard() {
   const { user } = useAuth();
@@ -52,9 +55,11 @@ export default function RecipientDashboard() {
   const [isAddSkillModalOpen, setIsAddSkillModalOpen] = useState(false);
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editingCareerEvent, setEditingCareerEvent] = useState<CareerEvent | null>(null);
 
   const isLoading = profileLoading || recipientLoading;
 
@@ -102,10 +107,16 @@ export default function RecipientDashboard() {
         {/* Hero Profile Section */}
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="h-40 bg-gradient-to-br from-primary/30 via-primary/20 to-accent/20 relative">
-            <Button size="sm" variant="secondary" className="absolute top-4 right-4" onClick={copyProfileLink}>
-              <Copy className="h-4 w-4 mr-2" />
-              Copy Public Link
-            </Button>
+            <div className="absolute top-4 right-4 flex gap-2">
+              <Button size="sm" variant="secondary" onClick={() => setIsEditProfileModalOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+              <Button size="sm" variant="secondary" onClick={copyProfileLink}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Public Link
+              </Button>
+            </div>
           </div>
           <div className="p-6 pt-0 -mt-12">
             <div className="flex flex-col md:flex-row md:items-end gap-4">
@@ -250,15 +261,21 @@ export default function RecipientDashboard() {
                   other: 'Meetup',
                 };
                 return (
-                  <CareerEventCard key={event.id} event={{
-                    id: event.id,
-                    name: event.name,
-                    date: event.date,
-                    location: event.location || '',
-                    description: event.description || '',
-                    category: categoryMap[event.category] || 'Conference',
-                    skillsGained: event.skills_gained || [],
-                  }} />
+                  <div 
+                    key={event.id} 
+                    className="cursor-pointer hover:ring-2 hover:ring-primary/50 rounded-xl transition-all"
+                    onClick={() => setEditingCareerEvent(event)}
+                  >
+                    <CareerEventCard event={{
+                      id: event.id,
+                      name: event.name,
+                      date: event.date,
+                      location: event.location || '',
+                      description: event.description || '',
+                      category: categoryMap[event.category] || 'Conference',
+                      skillsGained: event.skills_gained || [],
+                    }} />
+                  </div>
                 );
               })}
             </div>
@@ -518,6 +535,13 @@ export default function RecipientDashboard() {
       <EditSkillModal skill={editingSkill} isOpen={!!editingSkill} onClose={() => setEditingSkill(null)} />
       <EditCourseModal course={editingCourse} isOpen={!!editingCourse} onClose={() => setEditingCourse(null)} />
       <EditProjectModal project={editingProject} isOpen={!!editingProject} onClose={() => setEditingProject(null)} />
+      <EditCareerEventModal event={editingCareerEvent} isOpen={!!editingCareerEvent} onClose={() => setEditingCareerEvent(null)} />
+      <EditRecipientProfileModal 
+        profile={profile} 
+        recipientProfile={recipientProfile} 
+        isOpen={isEditProfileModalOpen} 
+        onClose={() => setIsEditProfileModalOpen(false)} 
+      />
     </DashboardLayout>
   );
 }
