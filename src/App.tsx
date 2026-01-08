@@ -14,6 +14,7 @@ import DonorRegister from "./pages/DonorRegister";
 import DonorDashboard from "./pages/DonorDashboard";
 import DonorPublicProfile from "./pages/DonorPublicProfile";
 import DreamBoard from "./pages/DreamBoard";
+import Leaderboard from "./pages/Leaderboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
           <Route path="/donor/dashboard" element={<DonorDashboard />} />
           <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
           <Route path="/dream-board" element={<DreamBoard />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

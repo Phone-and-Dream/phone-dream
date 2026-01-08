@@ -9,6 +9,7 @@ import { JourneyTimeline } from '@/components/JourneyTimeline';
 import { CareerEventCard, CareerEvent } from '@/components/CareerEventCard';
 import { RecommendationCard, Recommendation } from '@/components/RecommendationCard';
 import { NFTBadge } from '@/components/NFTBadge';
+import { AddCareerEventModal } from '@/components/AddCareerEventModal';
 import { mockRecipients, formatDate } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -95,6 +96,8 @@ export default function RecipientDashboard() {
   const recipient = mockRecipients[0]; // Demo: use first recipient
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteSuccess, setShowInviteSuccess] = useState(false);
+  const [isAddEventModalOpen, setIsAddEventModalOpen] = useState(false);
+  const [careerEvents, setCareerEvents] = useState<CareerEvent[]>(mockCareerEvents);
 
   const copyProfileLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/recipient/profile/${recipient.id}`);
@@ -108,6 +111,10 @@ export default function RecipientDashboard() {
   };
 
   const totalXP = xpSources.reduce((sum, source) => sum + source.points, 0);
+
+  const handleAddEvent = (event: CareerEvent) => {
+    setCareerEvents(prev => [event, ...prev]);
+  };
 
   return (
     <DashboardLayout role="recipient">
@@ -246,13 +253,13 @@ export default function RecipientDashboard() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-display font-semibold">Career Events Attended</h2>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setIsAddEventModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add Event
             </Button>
           </div>
           <div className="grid md:grid-cols-3 gap-4">
-            {mockCareerEvents.map((event) => (
+            {careerEvents.map((event) => (
               <CareerEventCard key={event.id} event={event} />
             ))}
           </div>
@@ -379,6 +386,13 @@ export default function RecipientDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Add Career Event Modal */}
+      <AddCareerEventModal 
+        isOpen={isAddEventModalOpen} 
+        onClose={() => setIsAddEventModalOpen(false)}
+        onAdd={handleAddEvent}
+      />
     </DashboardLayout>
   );
 }

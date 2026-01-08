@@ -18,7 +18,22 @@ export default function DreamBoard() {
 
   const filteredRequests = mockDreamRequests.filter(req => {
     const matchesSearch = req.recipientName.toLowerCase().includes(search.toLowerCase()) || req.purpose.toLowerCase().includes(search.toLowerCase());
-    const matchesDevice = deviceFilter === 'all' || req.deviceNeeded.toLowerCase() === deviceFilter;
+    const deviceLower = req.deviceNeeded.toLowerCase();
+    const standardDevices = ['laptop', 'smartphone', 'tablet', 'pc'];
+    
+    let matchesDevice = deviceFilter === 'all';
+    if (deviceFilter === 'other') {
+      matchesDevice = !standardDevices.includes(deviceLower);
+    } else if (deviceFilter === 'monitor') {
+      matchesDevice = deviceLower.includes('monitor') || deviceLower.includes('keyboard') || deviceLower.includes('mouse');
+    } else if (deviceFilter === 'storage') {
+      matchesDevice = deviceLower.includes('storage') || deviceLower.includes('hdd') || deviceLower.includes('ssd') || deviceLower.includes('drive');
+    } else if (deviceFilter === 'creator') {
+      matchesDevice = deviceLower.includes('ring light') || deviceLower.includes('microphone') || deviceLower.includes('webcam') || deviceLower.includes('tripod');
+    } else if (deviceFilter !== 'all') {
+      matchesDevice = deviceLower === deviceFilter;
+    }
+    
     return matchesSearch && matchesDevice;
   });
 
@@ -49,6 +64,10 @@ export default function DreamBoard() {
               <SelectItem value="smartphone">Smartphone</SelectItem>
               <SelectItem value="tablet">Tablet</SelectItem>
               <SelectItem value="pc">PC</SelectItem>
+              <SelectItem value="monitor">Monitor & Peripherals</SelectItem>
+              <SelectItem value="storage">External Storage</SelectItem>
+              <SelectItem value="creator">Creator Tools</SelectItem>
+              <SelectItem value="other">Other Devices</SelectItem>
             </SelectContent>
           </Select>
         </div>

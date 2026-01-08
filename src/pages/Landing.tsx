@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Smartphone, Heart, Users, CheckCircle, Gift, Sparkles, Globe, ChevronDown, ChevronUp, Laptop, Tablet, Monitor, Keyboard, HardDrive, Printer, Eye, Target, Handshake, BarChart3 } from 'lucide-react';
+import { ArrowRight, Smartphone, Heart, Users, CheckCircle, Gift, Sparkles, Globe, ChevronDown, ChevronUp, Laptop, Tablet, Monitor, Keyboard, HardDrive, Eye, Target, Handshake, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
@@ -24,10 +24,9 @@ const devices = [
   { name: 'Laptops', icon: Laptop, description: 'MacBooks, ThinkPads, etc.' },
   { name: 'Tablets', icon: Tablet, description: 'iPads, Android tablets' },
   { name: 'Desktop PCs', icon: Monitor, description: 'Complete desktop setups' },
-  { name: 'Monitors', icon: Monitor, description: 'External displays' },
-  { name: 'Keyboards', icon: Keyboard, description: 'Mechanical & standard' },
+  { name: 'Monitors & Peripherals', icon: Keyboard, description: 'Displays, keyboards, mice' },
   { name: 'External Storage', icon: HardDrive, description: 'HDDs, SSDs, USB drives' },
-  { name: 'Printers', icon: Printer, description: 'Inkjet & laser printers' },
+  { name: 'Creator Tools', icon: Sparkles, description: 'Ring lights, mics, webcams, tripods' },
 ];
 
 const stakeholders = [
@@ -75,12 +74,12 @@ export default function Landing() {
               </div>
               
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 animate-fade-in-up text-foreground">
-                WE BRIDGE THE DIGITAL DIVIDE,<br />
-                <span className="text-primary italic">ONE DEVICE, ONE DREAM</span> AT A TIME.
+                Connect Device Donors<br />
+                With Digital Dreamers
               </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                A Phone and A Dream is a tech-for-impact platform committed to transforming unused smartphones and devices into powerful launchpads for aspiring digital talents in underserved communities.
+                A phone can change a life. A laptop can launch a career. Join us in empowering the next generation of creators, developers, and entrepreneurs.
               </p>
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
