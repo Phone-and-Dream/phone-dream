@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,8 @@ type DonationWithDetails = Database['public']['Tables']['donations']['Row'] & {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get('tab') || 'overview';
   const { signOut } = useAuth();
   
   // Data queries
@@ -252,7 +254,13 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
-        <Tabs defaultValue="overview">
+        <Tabs value={currentTab} onValueChange={(value) => {
+          if (value === 'overview') {
+            setSearchParams({});
+          } else {
+            setSearchParams({ tab: value });
+          }
+        }}>
           <TabsList className="mb-6 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="applications">Applications ({pendingCount})</TabsTrigger>
