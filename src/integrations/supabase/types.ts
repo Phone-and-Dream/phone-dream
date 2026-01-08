@@ -59,12 +59,706 @@ export type Database = {
         }
         Relationships: []
       }
+      application_references: {
+        Row: {
+          application_id: string
+          contact: string
+          created_at: string
+          id: string
+          is_validated: boolean
+          name: string
+          relationship: string
+          validated_at: string | null
+        }
+        Insert: {
+          application_id: string
+          contact: string
+          created_at?: string
+          id?: string
+          is_validated?: boolean
+          name: string
+          relationship: string
+          validated_at?: string | null
+        }
+        Update: {
+          application_id?: string
+          contact?: string
+          created_at?: string
+          id?: string
+          is_validated?: boolean
+          name?: string
+          relationship?: string
+          validated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_references_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          additional_info: string | null
+          admin_notes: string | null
+          device_needed: string
+          id: string
+          purpose: string
+          reference_letter_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          additional_info?: string | null
+          admin_notes?: string | null
+          device_needed: string
+          id?: string
+          purpose: string
+          reference_letter_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          additional_info?: string | null
+          admin_notes?: string | null
+          device_needed?: string
+          id?: string
+          purpose?: string
+          reference_letter_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      attestations: {
+        Row: {
+          attestation_id: string | null
+          created_at: string
+          donation_id: string
+          donor_id: string
+          id: string
+          metadata: Json | null
+          network: string
+          recipient_id: string
+          schema_id: string | null
+          tx_hash: string
+        }
+        Insert: {
+          attestation_id?: string | null
+          created_at?: string
+          donation_id: string
+          donor_id: string
+          id?: string
+          metadata?: Json | null
+          network?: string
+          recipient_id: string
+          schema_id?: string | null
+          tx_hash: string
+        }
+        Update: {
+          attestation_id?: string | null
+          created_at?: string
+          donation_id?: string
+          donor_id?: string
+          id?: string
+          metadata?: Json | null
+          network?: string
+          recipient_id?: string
+          schema_id?: string | null
+          tx_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attestations_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_events: {
+        Row: {
+          category: Database["public"]["Enums"]["career_event_category"]
+          created_at: string
+          date: string
+          description: string | null
+          id: string
+          location: string | null
+          name: string
+          recipient_id: string
+          skills_gained: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["career_event_category"]
+          created_at?: string
+          date: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          recipient_id: string
+          skills_gained?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["career_event_category"]
+          created_at?: string
+          date?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          recipient_id?: string
+          skills_gained?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      courses: {
+        Row: {
+          certificate_url: string | null
+          completion_date: string | null
+          created_at: string
+          id: string
+          name: string
+          progress: number
+          provider: string
+          recipient_id: string
+          status: Database["public"]["Enums"]["course_status"]
+          updated_at: string
+        }
+        Insert: {
+          certificate_url?: string | null
+          completion_date?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          progress?: number
+          provider: string
+          recipient_id: string
+          status?: Database["public"]["Enums"]["course_status"]
+          updated_at?: string
+        }
+        Update: {
+          certificate_url?: string | null
+          completion_date?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          progress?: number
+          provider?: string
+          recipient_id?: string
+          status?: Database["public"]["Enums"]["course_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      donations: {
+        Row: {
+          condition: Database["public"]["Enums"]["device_condition"]
+          created_at: string
+          currency: string
+          delivered_at: string | null
+          device_specs: string | null
+          device_type: string
+          donor_id: string
+          id: string
+          matched_at: string | null
+          matched_recipient_id: string | null
+          needs_refurbishing: boolean
+          repair_contribution: number | null
+          status: Database["public"]["Enums"]["donation_status"]
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition?: Database["public"]["Enums"]["device_condition"]
+          created_at?: string
+          currency?: string
+          delivered_at?: string | null
+          device_specs?: string | null
+          device_type: string
+          donor_id: string
+          id?: string
+          matched_at?: string | null
+          matched_recipient_id?: string | null
+          needs_refurbishing?: boolean
+          repair_contribution?: number | null
+          status?: Database["public"]["Enums"]["donation_status"]
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition?: Database["public"]["Enums"]["device_condition"]
+          created_at?: string
+          currency?: string
+          delivered_at?: string | null
+          device_specs?: string | null
+          device_type?: string
+          donor_id?: string
+          id?: string
+          matched_at?: string | null
+          matched_recipient_id?: string | null
+          needs_refurbishing?: boolean
+          repair_contribution?: number | null
+          status?: Database["public"]["Enums"]["donation_status"]
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      donor_profiles: {
+        Row: {
+          created_at: string
+          donor_type: Database["public"]["Enums"]["donor_type"]
+          id: string
+          organization_name: string | null
+          recipients_helped: number
+          regions_reached: number
+          total_donated: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          donor_type?: Database["public"]["Enums"]["donor_type"]
+          id?: string
+          organization_name?: string | null
+          recipients_helped?: number
+          regions_reached?: number
+          total_donated?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          donor_type?: Database["public"]["Enums"]["donor_type"]
+          id?: string
+          organization_name?: string | null
+          recipients_helped?: number
+          regions_reached?: number
+          total_donated?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dream_requests: {
+        Row: {
+          created_at: string
+          device_needed: string
+          id: string
+          matched_donation_id: string | null
+          milestones: Json | null
+          needs_refurbishing: boolean
+          purpose: string
+          recipient_id: string
+          status: Database["public"]["Enums"]["dream_status"]
+          timeline: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_needed: string
+          id?: string
+          matched_donation_id?: string | null
+          milestones?: Json | null
+          needs_refurbishing?: boolean
+          purpose: string
+          recipient_id: string
+          status?: Database["public"]["Enums"]["dream_status"]
+          timeline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_needed?: string
+          id?: string
+          matched_donation_id?: string | null
+          milestones?: Json | null
+          needs_refurbishing?: boolean
+          purpose?: string
+          recipient_id?: string
+          status?: Database["public"]["Enums"]["dream_status"]
+          timeline?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dream_requests_matched_donation_id_fkey"
+            columns: ["matched_donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_events: {
+        Row: {
+          created_at: string
+          date: string
+          description: string | null
+          event_type: Database["public"]["Enums"]["journey_event_type"]
+          icon: string | null
+          id: string
+          recipient_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["journey_event_type"]
+          icon?: string | null
+          id?: string
+          recipient_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          description?: string | null
+          event_type?: Database["public"]["Enums"]["journey_event_type"]
+          icon?: string | null
+          id?: string
+          recipient_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          country: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          location: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          country?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          location?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          country?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          location?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          built_with_donated_device: boolean
+          created_at: string
+          description: string | null
+          github_url: string | null
+          id: string
+          is_featured: boolean
+          live_url: string | null
+          name: string
+          recipient_id: string
+          status: Database["public"]["Enums"]["project_status"]
+          tech_stack: string[] | null
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          built_with_donated_device?: boolean
+          created_at?: string
+          description?: string | null
+          github_url?: string | null
+          id?: string
+          is_featured?: boolean
+          live_url?: string | null
+          name: string
+          recipient_id: string
+          status?: Database["public"]["Enums"]["project_status"]
+          tech_stack?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          built_with_donated_device?: boolean
+          created_at?: string
+          description?: string | null
+          github_url?: string | null
+          id?: string
+          is_featured?: boolean
+          live_url?: string | null
+          name?: string
+          recipient_id?: string
+          status?: Database["public"]["Enums"]["project_status"]
+          tech_stack?: string[] | null
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      recipient_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          creator_type: Database["public"]["Enums"]["creator_type"] | null
+          device_received_id: string | null
+          id: string
+          institution: string | null
+          is_verified: boolean
+          linkedin_url: string | null
+          portfolio_url: string | null
+          rank: Database["public"]["Enums"]["recipient_rank"]
+          school_or_career: string | null
+          tagline: string | null
+          twitter_url: string | null
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          creator_type?: Database["public"]["Enums"]["creator_type"] | null
+          device_received_id?: string | null
+          id?: string
+          institution?: string | null
+          is_verified?: boolean
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          rank?: Database["public"]["Enums"]["recipient_rank"]
+          school_or_career?: string | null
+          tagline?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          creator_type?: Database["public"]["Enums"]["creator_type"] | null
+          device_received_id?: string | null
+          id?: string
+          institution?: string | null
+          is_verified?: boolean
+          linkedin_url?: string | null
+          portfolio_url?: string | null
+          rank?: Database["public"]["Enums"]["recipient_rank"]
+          school_or_career?: string | null
+          tagline?: string | null
+          twitter_url?: string | null
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_device_received"
+            columns: ["device_received_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendations: {
+        Row: {
+          id: string
+          message: string
+          recipient_id: string
+          recommender_email: string | null
+          recommender_name: string
+          recommender_organization: string | null
+          recommender_title: string | null
+          relationship: string
+          status: Database["public"]["Enums"]["recommendation_status"]
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          message: string
+          recipient_id: string
+          recommender_email?: string | null
+          recommender_name: string
+          recommender_organization?: string | null
+          recommender_title?: string | null
+          relationship: string
+          status?: Database["public"]["Enums"]["recommendation_status"]
+          submitted_at?: string
+        }
+        Update: {
+          id?: string
+          message?: string
+          recipient_id?: string
+          recommender_email?: string | null
+          recommender_name?: string
+          recommender_organization?: string | null
+          recommender_title?: string | null
+          relationship?: string
+          status?: Database["public"]["Enums"]["recommendation_status"]
+          submitted_at?: string
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          category: Database["public"]["Enums"]["skill_category"]
+          created_at: string
+          id: string
+          is_verified: boolean
+          level: Database["public"]["Enums"]["skill_level"]
+          name: string
+          progress: number
+          recipient_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["skill_category"]
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          level?: Database["public"]["Enums"]["skill_level"]
+          name: string
+          progress?: number
+          recipient_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["skill_category"]
+          created_at?: string
+          id?: string
+          is_verified?: boolean
+          level?: Database["public"]["Enums"]["skill_level"]
+          name?: string
+          progress?: number
+          recipient_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      xp_rules: {
+        Row: {
+          action: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          updated_at: string
+          xp_value: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          xp_value?: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          xp_value?: number
+        }
+        Relationships: []
+      }
+      xp_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          recipient_id: string
+          rule_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          recipient_id: string
+          rule_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          recipient_id?: string
+          rule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xp_transactions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "xp_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       admin_action_type:
@@ -77,6 +771,46 @@ export type Database = {
         | "adjust_xp"
         | "login"
         | "logout"
+      app_role: "admin" | "donor" | "recipient"
+      application_status: "pending" | "approved" | "rejected"
+      career_event_category:
+        | "conference"
+        | "workshop"
+        | "hackathon"
+        | "webinar"
+        | "meetup"
+        | "certification"
+        | "other"
+      course_status: "in_progress" | "completed"
+      creator_type:
+        | "student"
+        | "artist"
+        | "entrepreneur"
+        | "developer"
+        | "educator"
+        | "other"
+      device_condition: "new" | "used" | "refurbished"
+      donation_status: "pending" | "matched" | "in_transit" | "delivered"
+      donor_type: "individual" | "organization"
+      dream_status: "open" | "matched" | "fulfilled"
+      journey_event_type:
+        | "device_received"
+        | "skill_learned"
+        | "project_completed"
+        | "course_completed"
+        | "job_obtained"
+        | "milestone"
+        | "other"
+      project_status: "planning" | "in_progress" | "completed" | "on_hold"
+      recipient_rank: "Bronze" | "Silver" | "Gold" | "Platinum"
+      recommendation_status: "pending" | "approved" | "verified"
+      skill_category:
+        | "technical"
+        | "creative"
+        | "business"
+        | "language"
+        | "other"
+      skill_level: "beginner" | "intermediate" | "advanced" | "expert"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -215,6 +949,50 @@ export const Constants = {
         "login",
         "logout",
       ],
+      app_role: ["admin", "donor", "recipient"],
+      application_status: ["pending", "approved", "rejected"],
+      career_event_category: [
+        "conference",
+        "workshop",
+        "hackathon",
+        "webinar",
+        "meetup",
+        "certification",
+        "other",
+      ],
+      course_status: ["in_progress", "completed"],
+      creator_type: [
+        "student",
+        "artist",
+        "entrepreneur",
+        "developer",
+        "educator",
+        "other",
+      ],
+      device_condition: ["new", "used", "refurbished"],
+      donation_status: ["pending", "matched", "in_transit", "delivered"],
+      donor_type: ["individual", "organization"],
+      dream_status: ["open", "matched", "fulfilled"],
+      journey_event_type: [
+        "device_received",
+        "skill_learned",
+        "project_completed",
+        "course_completed",
+        "job_obtained",
+        "milestone",
+        "other",
+      ],
+      project_status: ["planning", "in_progress", "completed", "on_hold"],
+      recipient_rank: ["Bronze", "Silver", "Gold", "Platinum"],
+      recommendation_status: ["pending", "approved", "verified"],
+      skill_category: [
+        "technical",
+        "creative",
+        "business",
+        "language",
+        "other",
+      ],
+      skill_level: ["beginner", "intermediate", "advanced", "expert"],
     },
   },
 } as const

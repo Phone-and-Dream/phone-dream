@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -17,7 +19,6 @@ import DreamBoard from "./pages/DreamBoard";
 import Leaderboard from "./pages/Leaderboard";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
-import { AdminProtectedRoute } from "./components/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,23 +29,37 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/recipient/apply" element={<RecipientApply />} />
-          <Route path="/recipient/apply/success" element={<RecipientApplySuccess />} />
-          <Route path="/recipient/dashboard" element={<RecipientDashboard />} />
-          <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
-          <Route path="/donor/register" element={<DonorRegister />} />
-          <Route path="/donor/dashboard" element={<DonorDashboard />} />
-          <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
-          <Route path="/dream-board" element={<DreamBoard />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/recipient/apply" element={<RecipientApply />} />
+            <Route path="/recipient/apply/success" element={<RecipientApplySuccess />} />
+            <Route path="/recipient/dashboard" element={
+              <ProtectedRoute requiredRole="recipient">
+                <RecipientDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
+            <Route path="/donor/register" element={<DonorRegister />} />
+            <Route path="/donor/dashboard" element={
+              <ProtectedRoute requiredRole="donor">
+                <DonorDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
+            <Route path="/dream-board" element={<DreamBoard />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin" element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

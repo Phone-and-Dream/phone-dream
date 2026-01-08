@@ -1,23 +1,80 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCreateDonation } from '@/hooks/useDonations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Navbar } from '@/components/layout/Navbar';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import type { Database } from '@/integrations/supabase/types';
+
+type DeviceCondition = Database['public']['Enums']['device_condition'];
 
 export default function DonorRegister() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const createDonation = useCreateDonation();
+  
   const [needsRefurbishing, setNeedsRefurbishing] = useState(false);
   const [deviceType, setDeviceType] = useState('');
   const [otherDeviceType, setOtherDeviceType] = useState('');
+  const [condition, setCondition] = useState<DeviceCondition>('used');
+  const [deviceSpecs, setDeviceSpecs] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [repairAmount, setRepairAmount] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/donor/dashboard');
+
+    if (!user) {
+      toast({
+        title: "Not logged in",
+        description: "Please sign up or log in to donate a device",
+        variant: "destructive",
+      });
+      navigate('/signup');
+      return;
+    }
+
+    const finalDeviceType = deviceType === 'other' ? otherDeviceType : deviceType;
+
+    if (!finalDeviceType) {
+      toast({
+        title: "Missing device type",
+        description: "Please select or specify a device type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createDonation.mutateAsync({
+        device_type: finalDeviceType,
+        device_specs: deviceSpecs || null,
+        condition,
+        needs_refurbishing: needsRefurbishing,
+        repair_contribution: repairAmount ? parseFloat(repairAmount) : null,
+        currency,
+      });
+
+      toast({
+        title: "Donation submitted!",
+        description: "Thank you for your generosity. We'll be in touch soon.",
+      });
+
+      navigate('/donor/dashboard');
+    } catch (error) {
+      toast({
+        title: "Error submitting donation",
+        description: (error as Error).message,
+        variant: "destructive",
+      });
+    }
   };
 
   const getCurrencySymbol = (curr: string) => {
@@ -39,22 +96,6 @@ export default function DonorRegister() {
         <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-6 md:p-8 space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Your Name / Organization *</Label>
-              <Input placeholder="Name or organization" />
-            </div>
-            <div className="space-y-2">
-              <Label>Email *</Label>
-              <Input type="email" placeholder="you@example.com" />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Location *</Label>
-            <Input placeholder="City, Country" />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
               <Label>Device Type *</Label>
               <Select value={deviceType} onValueChange={setDeviceType}>
                 <SelectTrigger><SelectValue placeholder="Select device" /></SelectTrigger>
@@ -73,7 +114,7 @@ export default function DonorRegister() {
             </div>
             <div className="space-y-2">
               <Label>Condition *</Label>
-              <Select>
+              <Select value={condition} onValueChange={(v) => setCondition(v as DeviceCondition)}>
                 <SelectTrigger><SelectValue placeholder="Select condition" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new">New</SelectItem>
@@ -94,6 +135,15 @@ export default function DonorRegister() {
               />
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Device Specifications (Optional)</Label>
+            <Input 
+              placeholder="e.g., MacBook Pro 2019, 16GB RAM, 512GB SSD" 
+              value={deviceSpecs}
+              onChange={(e) => setDeviceSpecs(e.target.value)}
+            />
+          </div>
 
           <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
             <div>
@@ -143,7 +193,27 @@ export default function DonorRegister() {
             </div>
           )}
 
-          <Button type="submit" className="w-full" size="lg">Submit Donation</Button>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            size="lg"
+            disabled={createDonation.isPending}
+          >
+            {createDonation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Donation'
+            )}
+          </Button>
+
+          {!user && (
+            <p className="text-center text-sm text-muted-foreground">
+              You'll need to sign up to complete your donation
+            </p>
+          )}
         </form>
       </div>
     </div>
