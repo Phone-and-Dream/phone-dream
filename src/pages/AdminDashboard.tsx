@@ -1,14 +1,26 @@
 import { useState } from 'react';
-import { Check, X, Eye, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, X, Eye, AlertTriangle, LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { mockApplications, mockDonors, mockRecipients, formatDate } from '@/lib/mockData';
+import { toast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState(mockApplications);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('adminAuthenticated');
+    toast({
+      title: "Logged out",
+      description: "You've been logged out of the admin panel.",
+    });
+    navigate('/admin/login');
+  };
 
   const handleApprove = (id: string) => {
     setApplications(apps => apps.map(app => app.id === id ? { ...app, status: 'approved' as const } : app));
@@ -35,9 +47,15 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
-          <h1 className="text-2xl font-display font-bold">Admin Dashboard</h1>
-          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">DEMO</Badge>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-display font-bold">Admin Dashboard</h1>
+            <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">DEMO</Badge>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
 
         <Tabs defaultValue="applications">
