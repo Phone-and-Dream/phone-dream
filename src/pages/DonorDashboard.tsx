@@ -1,18 +1,50 @@
 import { Link } from 'react-router-dom';
-import { Gift, Users, Globe, ExternalLink, Copy, Share2 } from 'lucide-react';
+import { Gift, Users, Globe, ExternalLink, Copy, Share2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { NFTBadge } from '@/components/NFTBadge';
-import { mockDonors, formatDate } from '@/lib/mockData';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMyProfile, useMyDonorProfile } from '@/hooks/useProfiles';
+import { useMyDonations } from '@/hooks/useDonations';
+import { toast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
 
 export default function DonorDashboard() {
-  const donor = mockDonors[0]; // Demo: use first donor
+  const { user } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useMyProfile();
+  const { data: donorProfile, isLoading: donorLoading } = useMyDonorProfile();
+  const { data: donations = [], isLoading: donationsLoading } = useMyDonations();
+
+  const isLoading = profileLoading || donorLoading || donationsLoading;
 
   const copyProfileLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/donor/profile/${donor.id}`);
+    if (user?.id) {
+      navigator.clipboard.writeText(`${window.location.origin}/donor/profile/${user.id}`);
+      toast({ title: "Link copied!", description: "Public profile link copied to clipboard." });
+    }
   };
+
+  // Calculate stats from real data
+  const stats = {
+    totalDonated: donorProfile?.total_donated || donations.length,
+    recipientsHelped: donorProfile?.recipients_helped || donations.filter(d => d.status === 'delivered').length,
+    regionsReached: donorProfile?.regions_reached || 1,
+  };
+
+  // Get delivered donations for NFT badges
+  const deliveredDonations = donations.filter(d => d.status === 'delivered' && d.matched_recipient_id);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout role="donor">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout role="donor">
@@ -21,26 +53,28 @@ export default function DonorDashboard() {
         <div className="glass-card rounded-2xl p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl">
-                {typeof donor.avatar === 'string' && donor.avatar.startsWith('http') ? (
-                  <img src={donor.avatar} alt={donor.name} className="w-full h-full rounded-2xl object-cover" />
-                ) : (
-                  donor.avatar
-                )}
+              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
+                {profile?.full_name?.charAt(0) || donorProfile?.organization_name?.charAt(0) || '?'}
               </div>
               <div>
-                <h1 className="text-2xl font-display font-bold">{donor.name}</h1>
-                <p className="text-muted-foreground">{donor.type} • {donor.location}</p>
-                <p className="text-sm text-muted-foreground">Member since {formatDate(donor.memberSince)}</p>
+                <h1 className="text-2xl font-display font-bold">
+                  {donorProfile?.organization_name || profile?.full_name || 'Your Name'}
+                </h1>
+                <p className="text-muted-foreground">
+                  {donorProfile?.donor_type === 'organization' ? 'Organization' : 'Individual Donor'} • {profile?.location || 'Location not set'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Member since {format(new Date(profile?.created_at || new Date()), 'MMM yyyy')}
+                </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Button variant="outline" size="sm" onClick={copyProfileLink}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy Public Link
               </Button>
               <Button variant="outline" size="sm" asChild>
-                <Link to={`/donor/profile/${donor.id}`}>
+                <Link to={`/donor/profile/${user?.id}`}>
                   <Share2 className="h-4 w-4 mr-2" />
                   View Public Profile
                 </Link>
@@ -54,35 +88,33 @@ export default function DonorDashboard() {
 
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-4">
-          <StatCard icon={<Gift className="h-5 w-5" />} label="Devices Donated" value={donor.stats.totalDonated} />
-          <StatCard icon={<Users className="h-5 w-5" />} label="Recipients Helped" value={donor.stats.recipientsHelped} />
-          <StatCard icon={<Globe className="h-5 w-5" />} label="Regions Reached" value={donor.stats.regionsReached} />
+          <StatCard icon={<Gift className="h-5 w-5" />} label="Devices Donated" value={stats.totalDonated} />
+          <StatCard icon={<Users className="h-5 w-5" />} label="Recipients Helped" value={stats.recipientsHelped} />
+          <StatCard icon={<Globe className="h-5 w-5" />} label="Regions Reached" value={stats.regionsReached} />
         </div>
 
         {/* NFT Badges - Delivered Donations */}
-        {donor.donations.filter(d => d.status === 'Delivered' && d.recipientId).length > 0 && (
+        {deliveredDonations.length > 0 && (
           <div className="glass-card rounded-2xl p-6">
             <h2 className="text-xl font-display font-semibold mb-6">Your Impact Badges (SBTs)</h2>
             <p className="text-muted-foreground mb-6">
               Each badge represents a verified donation on the blockchain. Click to view the recipient's journey.
             </p>
             <div className="flex flex-wrap gap-6 justify-center md:justify-start">
-              {donor.donations
-                .filter(d => d.status === 'Delivered' && d.recipientId)
-                .map((donation) => (
-                  <NFTBadge
-                    key={donation.id}
-                    donorName={donor.name}
-                    donorId={donor.id}
-                    recipientName={donation.recipientName || 'Recipient'}
-                    recipientId={donation.recipientId || ''}
-                    deviceType={donation.deviceType}
-                    condition={donation.condition}
-                    txHash={donation.txHash || '0x0000...0000'}
-                    date={donation.date}
-                    linkTo="recipient"
-                  />
-                ))}
+              {deliveredDonations.map((donation) => (
+                <NFTBadge
+                  key={donation.id}
+                  donorName={profile?.full_name || donorProfile?.organization_name || 'Donor'}
+                  donorId={user?.id || ''}
+                  recipientName="Recipient"
+                  recipientId={donation.matched_recipient_id || ''}
+                  deviceType={donation.device_type}
+                  condition={donation.condition === 'new' ? 'New' : 'Refurbished'}
+                  txHash="0x0000...0000"
+                  date={donation.delivered_at || donation.created_at}
+                  linkTo="recipient"
+                />
+              ))}
             </div>
           </div>
         )}
@@ -90,48 +122,58 @@ export default function DonorDashboard() {
         {/* Donation History Table */}
         <div className="glass-card rounded-2xl p-6">
           <h2 className="text-xl font-display font-semibold mb-4">Donation History</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                  <th className="pb-3 font-medium">Device</th>
-                  <th className="pb-3 font-medium">Condition</th>
-                  <th className="pb-3 font-medium">Recipient</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Date</th>
-                  <th className="pb-3 font-medium">Verification</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {donor.donations.map((donation) => (
-                  <tr key={donation.id} className="border-b border-border/50">
-                    <td className="py-4 font-medium">{donation.deviceType}</td>
-                    <td className="py-4">{donation.condition}</td>
-                    <td className="py-4">
-                      {donation.recipientName ? (
-                        <Link to={`/recipient/profile/${donation.recipientId}`} className="text-primary hover:underline">
-                          {donation.recipientName}
-                        </Link>
-                      ) : (
-                        <span className="text-muted-foreground">Pending match</span>
-                      )}
-                    </td>
-                    <td className="py-4"><StatusBadge status={donation.status} /></td>
-                    <td className="py-4 text-muted-foreground">{formatDate(donation.date)}</td>
-                    <td className="py-4">
-                      {donation.txHash ? (
-                        <a href="#" className="text-primary hover:underline text-xs flex items-center gap-1">
-                          {donation.txHash} <ExternalLink className="h-3 w-3" />
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
+          {donations.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border text-left text-sm text-muted-foreground">
+                    <th className="pb-3 font-medium">Device</th>
+                    <th className="pb-3 font-medium">Condition</th>
+                    <th className="pb-3 font-medium">Recipient</th>
+                    <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium">Date</th>
+                    <th className="pb-3 font-medium">Verification</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="text-sm">
+                  {donations.map((donation) => (
+                    <tr key={donation.id} className="border-b border-border/50">
+                      <td className="py-4 font-medium">{donation.device_type}</td>
+                      <td className="py-4 capitalize">{donation.condition}</td>
+                      <td className="py-4">
+                        {donation.matched_recipient_id ? (
+                          <Link to={`/recipient/profile/${donation.matched_recipient_id}`} className="text-primary hover:underline">
+                            View Recipient
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">Pending match</span>
+                        )}
+                      </td>
+                      <td className="py-4"><StatusBadge status={donation.status} /></td>
+                      <td className="py-4 text-muted-foreground">{format(new Date(donation.created_at), 'MMM d, yyyy')}</td>
+                      <td className="py-4">
+                        {donation.status === 'delivered' ? (
+                          <a href="#" className="text-primary hover:underline text-xs flex items-center gap-1">
+                            View on BaseScan <ExternalLink className="h-3 w-3" />
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <Gift className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No donations yet. Make your first donation to see it here!</p>
+              <Button asChild className="mt-4">
+                <Link to="/donor/register">Donate a Device</Link>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>

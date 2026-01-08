@@ -1,22 +1,63 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Smartphone, Gift, Heart } from 'lucide-react';
+import { Smartphone, Gift, Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 type Role = 'donor' | 'recipient';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!role || !email || !password || !name) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in all fields and select a role.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await signUp(email, password, name, role);
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Signup failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Account created!",
+      description: "Please complete your profile.",
+    });
+
+    // Navigate to onboarding based on role
     if (role === 'donor') {
       navigate('/donor/register');
     } else {
@@ -44,11 +85,13 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => setRole('donor')}
+              disabled={isLoading}
               className={cn(
                 "flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all",
                 role === 'donor' 
                   ? "border-primary bg-primary/5" 
-                  : "border-border hover:border-primary/50"
+                  : "border-border hover:border-primary/50",
+                isLoading && "opacity-50 cursor-not-allowed"
               )}
             >
               <div className={cn(
@@ -66,11 +109,13 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => setRole('recipient')}
+              disabled={isLoading}
               className={cn(
                 "flex flex-col items-center gap-3 p-6 rounded-xl border-2 transition-all",
                 role === 'recipient' 
                   ? "border-primary bg-primary/5" 
-                  : "border-border hover:border-primary/50"
+                  : "border-border hover:border-primary/50",
+                isLoading && "opacity-50 cursor-not-allowed"
               )}
             >
               <div className={cn(
@@ -94,6 +139,7 @@ export default function Signup() {
                 placeholder="Your name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
@@ -105,6 +151,7 @@ export default function Signup() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
@@ -116,11 +163,20 @@ export default function Signup() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
+              <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={!role}>
-              {role === 'donor' ? 'Continue to Donate' : role === 'recipient' ? 'Continue to Apply' : 'Select a role above'}
+            <Button type="submit" className="w-full" size="lg" disabled={!role || isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                role === 'donor' ? 'Continue to Donate' : role === 'recipient' ? 'Continue to Apply' : 'Select a role above'
+              )}
             </Button>
           </form>
 

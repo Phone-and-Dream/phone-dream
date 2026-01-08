@@ -1,43 +1,50 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Smartphone, Eye, EyeOff, Shield, AlertTriangle } from 'lucide-react';
+import { Smartphone, Eye, EyeOff, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/hooks/use-toast';
-
-// Prototype password - In production, use proper authentication
-const DEMO_ADMIN_PASSWORD = 'admin123';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter your email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Simulate authentication delay
-    setTimeout(() => {
-      if (password === DEMO_ADMIN_PASSWORD) {
-        // Store admin session in sessionStorage (prototype only)
-        sessionStorage.setItem('adminAuthenticated', 'true');
-        toast({
-          title: "Welcome, Admin!",
-          description: "You've successfully logged into the admin panel.",
-        });
-        navigate('/admin');
-      } else {
-        toast({
-          title: "Invalid Password",
-          description: "The password you entered is incorrect.",
-          variant: "destructive",
-        });
-      }
-      setIsLoading(false);
-    }, 500);
+    setIsLoading(true);
+    const { error } = await signIn(email, password);
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // The ProtectedRoute will check for admin role and redirect appropriately
+    toast({
+      title: "Welcome, Admin!",
+      description: "You've successfully logged into the admin panel.",
+    });
+    navigate('/admin');
   };
 
   return (
@@ -52,30 +59,32 @@ export default function AdminLogin() {
             <span>A Phone and A Dream</span>
           </Link>
 
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-6">
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Shield className="h-6 w-6 text-primary" />
             </div>
             <div>
               <h1 className="text-3xl font-display font-bold">Admin Access</h1>
-              <p className="text-muted-foreground">Enter password to continue</p>
-            </div>
-          </div>
-
-          {/* Prototype Warning */}
-          <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 my-6 flex items-start gap-2">
-            <AlertTriangle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-primary">Prototype Mode</p>
-              <p className="text-muted-foreground">
-                This is a demo login. Use password: <code className="bg-muted px-1 rounded">admin123</code>
-              </p>
+              <p className="text-muted-foreground">Sign in with admin credentials</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Admin Password</Label>
+              <Label htmlFor="email">Admin Email</Label>
+              <Input 
+                id="email" 
+                type="email"
+                placeholder="admin@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input 
                   id="password" 
@@ -83,7 +92,7 @@ export default function AdminLogin() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoFocus
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -96,7 +105,14 @@ export default function AdminLogin() {
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-              {isLoading ? 'Verifying...' : 'Access Admin Panel'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                'Access Admin Panel'
+              )}
             </Button>
           </form>
 
