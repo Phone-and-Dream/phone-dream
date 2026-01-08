@@ -15,7 +15,9 @@ import DonorDashboard from "./pages/DonorDashboard";
 import DonorPublicProfile from "./pages/DonorPublicProfile";
 import DreamBoard from "./pages/DreamBoard";
 import Leaderboard from "./pages/Leaderboard";
+import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import { AdminProtectedRoute } from "./components/AdminProtectedRoute";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,7 +41,8 @@ const App = () => (
           <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
           <Route path="/dream-board" element={<DreamBoard />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
