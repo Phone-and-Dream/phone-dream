@@ -332,6 +332,53 @@ export function useCreateCareerEvent() {
   });
 }
 
+export function useUpdateCareerEvent() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id, ...event }: { id: string } & Partial<Database['public']['Tables']['career_events']['Update']>) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('career_events')
+        .update(event)
+        .eq('id', id)
+        .eq('recipient_id', user.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['career_events', user?.id] });
+    },
+  });
+}
+
+export function useDeleteCareerEvent() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { error } = await supabase
+        .from('career_events')
+        .delete()
+        .eq('id', id)
+        .eq('recipient_id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['career_events', user?.id] });
+    },
+  });
+}
+
 // Recommendations
 export function useRecommendations(recipientId?: string) {
   return useQuery({

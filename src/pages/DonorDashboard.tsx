@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Users, Globe, ExternalLink, Copy, Share2, Loader2 } from 'lucide-react';
+import { Gift, Users, Globe, ExternalLink, Copy, Share2, Loader2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { NFTBadge } from '@/components/NFTBadge';
+import { EditDonorProfileModal } from '@/components/EditDonorProfileModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyProfile, useMyDonorProfile } from '@/hooks/useProfiles';
 import { useMyDonations } from '@/hooks/useDonations';
@@ -12,6 +14,7 @@ import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 export default function DonorDashboard() {
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const { user } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const { data: donorProfile, isLoading: donorLoading } = useMyDonorProfile();
@@ -69,6 +72,10 @@ export default function DonorDashboard() {
               </div>
             </div>
             <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={() => setIsEditProfileModalOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
               <Button variant="outline" size="sm" onClick={copyProfileLink}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy Public Link
@@ -176,6 +183,13 @@ export default function DonorDashboard() {
           )}
         </div>
       </div>
+
+      <EditDonorProfileModal 
+        profile={profile} 
+        donorProfile={donorProfile} 
+        isOpen={isEditProfileModalOpen} 
+        onClose={() => setIsEditProfileModalOpen(false)} 
+      />
     </DashboardLayout>
   );
 }
