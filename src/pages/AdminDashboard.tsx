@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,9 @@ import { MatchDeviceModal } from '@/components/admin/MatchDeviceModal';
 import { ApplicationDetailModal } from '@/components/admin/ApplicationDetailModal';
 import { ApplicationTrendChart, DonationsByRegionChart, DeviceTypeChart, XPGrowthChart } from '@/components/admin/AnalyticsCharts';
 import { XPRulesManager } from '@/components/admin/XPRulesManager';
+import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
 import { mockApplications, mockDonors, mockRecipients, mockAttestationLogs, mockActivityLogs, getAllDonations, formatDate, type Application, type Donation } from '@/lib/mockData';
+import { logAdminAction } from '@/lib/auditLog';
 import { toast } from '@/hooks/use-toast';
 
 export default function AdminDashboard() {
@@ -24,7 +26,6 @@ export default function AdminDashboard() {
   const [appFilter, setAppFilter] = useState('all');
   const [donationFilter, setDonationFilter] = useState('all');
   const [userTab, setUserTab] = useState('recipients');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Modal states
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
@@ -33,45 +34,94 @@ export default function AdminDashboard() {
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
 
   const handleLogout = () => {
+    logAdminAction({
+      actionType: 'logout',
+      description: 'Admin logged out of the dashboard',
+    });
     sessionStorage.removeItem('adminAuthenticated');
     toast({ title: "Logged out", description: "You've been logged out of the admin panel." });
     navigate('/admin/login');
   };
 
   const handleApprove = (id: string) => {
-    setApplications(apps => apps.map(app => app.id === id ? { ...app, status: 'approved' as const } : app));
+    const app = applications.find(a => a.id === id);
+    setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'approved' as const } : a));
+    logAdminAction({
+      actionType: 'approve_application',
+      description: `Approved application for ${app?.recipientName}`,
+      entityType: 'application',
+      entityId: id,
+      oldValue: { status: 'pending' },
+      newValue: { status: 'approved' },
+    });
     toast({ title: "Application Approved", description: "The recipient has been approved." });
   };
 
   const handleReject = (id: string) => {
-    setApplications(apps => apps.map(app => app.id === id ? { ...app, status: 'rejected' as const } : app));
+    const app = applications.find(a => a.id === id);
+    setApplications(apps => apps.map(a => a.id === id ? { ...a, status: 'rejected' as const } : a));
+    logAdminAction({
+      actionType: 'reject_application',
+      description: `Rejected application for ${app?.recipientName}`,
+      entityType: 'application',
+      entityId: id,
+      oldValue: { status: 'pending' },
+      newValue: { status: 'rejected' },
+    });
     toast({ title: "Application Rejected", description: "The application has been rejected." });
   };
 
   const handleValidateReference = (appId: string, refIndex: number) => {
-    setApplications(apps => apps.map(app => {
-      if (app.id === appId) {
-        const updatedRefs = [...app.references];
+    const app = applications.find(a => a.id === appId);
+    const refName = app?.references[refIndex]?.name;
+    setApplications(apps => apps.map(a => {
+      if (a.id === appId) {
+        const updatedRefs = [...a.references];
         updatedRefs[refIndex] = { ...updatedRefs[refIndex], isValidated: true };
-        return { ...app, references: updatedRefs };
+        return { ...a, references: updatedRefs };
       }
-      return app;
+      return a;
     }));
+    logAdminAction({
+      actionType: 'validate_reference',
+      description: `Validated reference "${refName}" for ${app?.recipientName}`,
+      entityType: 'application',
+      entityId: appId,
+      newValue: { reference: refName, validated: true },
+    });
     toast({ title: "Reference Validated", description: "The reference has been marked as validated." });
   };
 
   const handleMatch = (donationId: string, recipientId: string, recipientName: string) => {
+    const donation = donations.find(d => d.id === donationId);
     setDonations(dons => dons.map(d => 
       d.id === donationId ? { ...d, status: 'Matched' as const, recipientId, recipientName } : d
     ));
+    logAdminAction({
+      actionType: 'match_device',
+      description: `Matched ${donation?.deviceType} to ${recipientName}`,
+      entityType: 'donation',
+      entityId: donationId,
+      oldValue: { status: 'Pending', recipientId: null },
+      newValue: { status: 'Matched', recipientId, recipientName },
+    });
     toast({ title: "Device Matched!", description: `Device matched to ${recipientName}` });
   };
 
   const handleConfirmDelivery = (donationId: string) => {
+    const donation = donations.find(d => d.id === donationId);
     const txHash = `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`;
     setDonations(dons => dons.map(d => 
       d.id === donationId ? { ...d, status: 'Delivered' as const, txHash } : d
     ));
+    logAdminAction({
+      actionType: 'confirm_delivery',
+      description: `Confirmed delivery of ${donation?.deviceType} to ${donation?.recipientName}`,
+      entityType: 'donation',
+      entityId: donationId,
+      oldValue: { status: 'Matched' },
+      newValue: { status: 'Delivered', txHash },
+    });
     toast({ title: "Delivery Confirmed", description: `Transaction hash: ${txHash}` });
   };
 
@@ -120,6 +170,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="xp">XP Management</TabsTrigger>
+            <TabsTrigger value="audit">
+              <History className="h-4 w-4 mr-1" />
+              Audit Log
+            </TabsTrigger>
           </TabsList>
 
           {/* OVERVIEW TAB */}
@@ -450,6 +504,11 @@ export default function AdminDashboard() {
           {/* XP MANAGEMENT TAB */}
           <TabsContent value="xp">
             <XPRulesManager />
+          </TabsContent>
+
+          {/* AUDIT LOG TAB */}
+          <TabsContent value="audit">
+            <AuditLogViewer />
           </TabsContent>
         </Tabs>
 

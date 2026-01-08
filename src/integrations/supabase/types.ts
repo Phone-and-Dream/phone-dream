@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_audit_logs: {
+        Row: {
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          admin_email: string | null
+          admin_id: string | null
+          created_at: string
+          description: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          new_value: Json | null
+          old_value: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["admin_action_type"]
+          admin_email?: string | null
+          admin_id?: string | null
+          created_at?: string
+          description: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["admin_action_type"]
+          admin_email?: string | null
+          admin_id?: string | null
+          created_at?: string
+          description?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +67,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      admin_action_type:
+        | "approve_application"
+        | "reject_application"
+        | "validate_reference"
+        | "match_device"
+        | "confirm_delivery"
+        | "update_xp_rule"
+        | "adjust_xp"
+        | "login"
+        | "logout"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +203,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      admin_action_type: [
+        "approve_application",
+        "reject_application",
+        "validate_reference",
+        "match_device",
+        "confirm_delivery",
+        "update_xp_rule",
+        "adjust_xp",
+        "login",
+        "logout",
+      ],
+    },
   },
 } as const
