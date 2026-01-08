@@ -9,8 +9,10 @@ import Signup from "./pages/Signup";
 import RecipientApply from "./pages/RecipientApply";
 import RecipientApplySuccess from "./pages/RecipientApplySuccess";
 import RecipientDashboard from "./pages/RecipientDashboard";
+import RecipientPublicProfile from "./pages/RecipientPublicProfile";
 import DonorRegister from "./pages/DonorRegister";
 import DonorDashboard from "./pages/DonorDashboard";
+import DonorPublicProfile from "./pages/DonorPublicProfile";
 import DreamBoard from "./pages/DreamBoard";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
@@ -30,9 +32,10 @@ const App = () => (
           <Route path="/recipient/apply" element={<RecipientApply />} />
           <Route path="/recipient/apply/success" element={<RecipientApplySuccess />} />
           <Route path="/recipient/dashboard" element={<RecipientDashboard />} />
-          <Route path="/recipient/profile/:id" element={<RecipientDashboard />} />
+          <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
           <Route path="/donor/register" element={<DonorRegister />} />
           <Route path="/donor/dashboard" element={<DonorDashboard />} />
+          <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
           <Route path="/dream-board" element={<DreamBoard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />

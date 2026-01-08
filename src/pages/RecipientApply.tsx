@@ -33,10 +33,12 @@ export default function RecipientApply() {
   const [location, setLocation] = useState('');
   const [country, setCountry] = useState('');
   const [creatorType, setCreatorType] = useState('');
+  const [otherCreatorType, setOtherCreatorType] = useState('');
   const [schoolOrCareer, setSchoolOrCareer] = useState('');
   const [institution, setInstitution] = useState('');
   const [purpose, setPurpose] = useState('');
   const [deviceNeeded, setDeviceNeeded] = useState('');
+  const [otherDeviceNeeded, setOtherDeviceNeeded] = useState('');
   const [references, setReferences] = useState<Reference[]>([
     { name: '', relationship: '', contact: '' },
     { name: '', relationship: '', contact: '' }
@@ -134,9 +136,21 @@ export default function RecipientApply() {
                   <SelectItem value="entrepreneur">Entrepreneur</SelectItem>
                   <SelectItem value="content-creator">Content Creator</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {creatorType === 'other' && (
+              <div className="space-y-2">
+                <Label htmlFor="otherCreatorType">Please specify your creator type *</Label>
+                <Input 
+                  id="otherCreatorType" 
+                  placeholder="e.g., Researcher, Artist, Journalist"
+                  value={otherCreatorType}
+                  onChange={(e) => setOtherCreatorType(e.target.value)}
+                />
+              </div>
+            )}
           </div>
         );
 
@@ -181,9 +195,21 @@ export default function RecipientApply() {
                   <SelectItem value="smartphone">Smartphone</SelectItem>
                   <SelectItem value="tablet">Tablet</SelectItem>
                   <SelectItem value="pc">Desktop PC</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {deviceNeeded === 'other' && (
+              <div className="space-y-2">
+                <Label htmlFor="otherDeviceNeeded">Please specify the device you need *</Label>
+                <Input 
+                  id="otherDeviceNeeded" 
+                  placeholder="e.g., Drawing Tablet, Monitor, VR Headset"
+                  value={otherDeviceNeeded}
+                  onChange={(e) => setOtherDeviceNeeded(e.target.value)}
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="purpose">Tell us your story and why you need this device *</Label>
               <Textarea 
