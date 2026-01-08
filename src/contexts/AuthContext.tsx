@@ -10,6 +10,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   roles: AppRole[];
+  rolesLoaded: boolean;
   isAdmin: boolean;
   isDonor: boolean;
   isRecipient: boolean;
@@ -25,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   const fetchRoles = async (userId: string) => {
     const { data, error } = await supabase
@@ -34,9 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (error) {
       console.error('Error fetching roles:', error);
+      setRolesLoaded(true);
       return [];
     }
     
+    setRolesLoaded(true);
     return data.map(r => r.role);
   };
 
@@ -54,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, 0);
       } else {
         setRoles([]);
+        setRolesLoaded(true);
       }
       
       setIsLoading(false);
@@ -141,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setRoles([]);
+    setRolesLoaded(false);
   };
 
   const isAdmin = roles.includes('admin');
@@ -153,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       isLoading,
       roles,
+      rolesLoaded,
       isAdmin,
       isDonor,
       isRecipient,

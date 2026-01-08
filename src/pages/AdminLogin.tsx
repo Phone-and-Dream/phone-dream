@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Smartphone, Eye, EyeOff, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,33 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, isAdmin, isLoading: authLoading, user, rolesLoaded } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginAttempted, setLoginAttempted] = useState(false);
+
+  // Navigate to admin dashboard once roles are loaded and user is admin
+  useEffect(() => {
+    if (loginAttempted && !authLoading && user && rolesLoaded) {
+      if (isAdmin) {
+        toast({
+          title: "Welcome, Admin!",
+          description: "You've successfully logged into the admin panel.",
+        });
+        navigate('/admin');
+      } else {
+        toast({
+          title: "Access denied",
+          description: "You don't have admin privileges.",
+          variant: "destructive",
+        });
+        setLoginAttempted(false);
+        setIsLoading(false);
+      }
+    }
+  }, [loginAttempted, authLoading, user, rolesLoaded, isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +50,6 @@ export default function AdminLogin() {
 
     setIsLoading(true);
     const { error } = await signIn(email, password);
-    setIsLoading(false);
 
     if (error) {
       toast({
@@ -36,15 +57,12 @@ export default function AdminLogin() {
         description: error.message,
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
-    // The ProtectedRoute will check for admin role and redirect appropriately
-    toast({
-      title: "Welcome, Admin!",
-      description: "You've successfully logged into the admin panel.",
-    });
-    navigate('/admin');
+    // Mark login as attempted - useEffect will handle navigation once roles load
+    setLoginAttempted(true);
   };
 
   return (
