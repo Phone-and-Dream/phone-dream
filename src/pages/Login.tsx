@@ -1,31 +1,52 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Smartphone, Eye, EyeOff } from 'lucide-react';
+import { Smartphone, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { signIn, isDonor, isRecipient, isAdmin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Demo: just navigate to recipient dashboard
-    navigate('/recipient/dashboard');
-  };
-
-  const handleDemoLogin = (role: 'recipient' | 'donor') => {
-    switch (role) {
-      case 'recipient':
-        navigate('/recipient/dashboard');
-        break;
-      case 'donor':
-        navigate('/donor/dashboard');
-        break;
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter your email and password.",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setIsLoading(true);
+    const { error } = await signIn(email, password);
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Welcome back!",
+      description: "You've successfully logged in.",
+    });
+
+    // Navigate based on role - will be handled by useEffect after roles load
+    // For now, navigate to home and let protected routes handle redirect
+    navigate('/');
   };
 
   return (
@@ -52,6 +73,7 @@ export default function Login() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
 
@@ -64,6 +86,7 @@ export default function Login() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
@@ -75,33 +98,28 @@ export default function Login() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" size="lg">
-              Sign In
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </Button>
           </form>
-
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-background px-4 text-muted-foreground">Or try a demo</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => handleDemoLogin('recipient')}>
-              Recipient
-            </Button>
-            <Button variant="outline" onClick={() => handleDemoLogin('donor')}>
-              Donor
-            </Button>
-          </div>
 
           <p className="text-center text-sm text-muted-foreground mt-8">
             Don't have an account?{' '}
             <Link to="/signup" className="text-primary hover:underline font-medium">
               Sign up
+            </Link>
+          </p>
+
+          <p className="text-center text-sm text-muted-foreground mt-4">
+            <Link to="/admin/login" className="text-muted-foreground hover:text-foreground">
+              Admin Login
             </Link>
           </p>
         </div>
