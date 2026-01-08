@@ -12,10 +12,7 @@ export function useDreamRequests(filters?: { deviceType?: string; status?: strin
     queryFn: async () => {
       let query = supabase
         .from('dream_requests')
-        .select(`
-          *,
-          recipient:profiles(*)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (filters?.status && filters.status !== 'all' && 
@@ -23,18 +20,71 @@ export function useDreamRequests(filters?: { deviceType?: string; status?: strin
         query = query.eq('status', filters.status as 'open' | 'matched' | 'fulfilled');
       }
 
-      const { data, error } = await query;
+      const { data: dreamRequests, error } = await query;
       
       if (error) throw error;
+      
+      // Get recipient profiles
+      const recipientIds = dreamRequests?.map(dr => dr.recipient_id) || [];
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', recipientIds);
+      
+      const { data: recipientProfiles } = await supabase
+        .from('recipient_profiles')
+        .select('*')
+        .in('user_id', recipientIds);
+
+      let results = dreamRequests?.map(dr => ({
+        ...dr,
+        recipient: profiles?.find(p => p.id === dr.recipient_id) || null,
+        recipient_profile: recipientProfiles?.find(rp => rp.user_id === dr.recipient_id) || null,
+      })) || [];
 
       // Filter by device type if specified
       if (filters?.deviceType && filters.deviceType !== 'all') {
-        return data.filter(r => 
+        results = results.filter(r => 
           r.device_needed.toLowerCase().includes(filters.deviceType!.toLowerCase())
         );
       }
 
-      return data;
+      return results;
+    },
+  });
+}
+
+// Fetch open dream requests for public Dream Board
+export function useOpenDreamRequests() {
+  return useQuery({
+    queryKey: ['open_dream_requests'],
+    queryFn: async () => {
+      const { data: dreamRequests, error } = await supabase
+        .from('dream_requests')
+        .select('*')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const recipientIds = dreamRequests?.map(dr => dr.recipient_id) || [];
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', recipientIds);
+      
+      const { data: recipientProfiles } = await supabase
+        .from('recipient_profiles')
+        .select('*')
+        .in('user_id', recipientIds);
+
+      return dreamRequests?.map(dr => ({
+        ...dr,
+        recipient: profiles?.find(p => p.id === dr.recipient_id) || null,
+        recipient_profile: recipientProfiles?.find(rp => rp.user_id === dr.recipient_id) || null,
+      })) || [];
     },
   });
 }
