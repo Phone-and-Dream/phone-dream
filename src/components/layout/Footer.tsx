@@ -32,7 +32,6 @@ export function Footer() {
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><Link to="/recipient/dashboard" className="hover:text-primary transition-colors">Recipient Dashboard</Link></li>
               <li><Link to="/donor/dashboard" className="hover:text-primary transition-colors">Donor Dashboard</Link></li>
-              <li><Link to="/admin" className="hover:text-primary transition-colors">Admin Panel</Link></li>
             </ul>
           </div>
         </div>
