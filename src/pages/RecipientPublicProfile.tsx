@@ -9,7 +9,7 @@ import { NFTBadge } from '@/components/NFTBadge';
 import { JourneyTimeline } from '@/components/JourneyTimeline';
 import { mockRecipients, formatDate } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +18,51 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 
+// Helper to update or create meta tags dynamically
+const updateMetaTag = (property: string, content: string) => {
+  let element = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+  if (!element) {
+    element = document.querySelector(`meta[name="${property}"]`) as HTMLMetaElement;
+  }
+  if (element) {
+    element.setAttribute('content', content);
+  } else {
+    const meta = document.createElement('meta');
+    if (property.startsWith('og:') || property.startsWith('twitter:')) {
+      meta.setAttribute('property', property);
+    } else {
+      meta.setAttribute('name', property);
+    }
+    meta.setAttribute('content', content);
+    document.head.appendChild(meta);
+  }
+};
+
 export default function RecipientPublicProfile() {
   const { id } = useParams();
   const [copied, setCopied] = useState(false);
   
   const recipient = mockRecipients.find(r => r.id === id) || mockRecipients[0];
   const profileUrl = `${window.location.origin}/recipient/profile/${recipient.id}`;
+
+  // Dynamic OG meta tags for social sharing
+  useEffect(() => {
+    const originalTitle = document.title;
+    
+    document.title = `${recipient.name} | A Phone and A Dream`;
+    
+    updateMetaTag('og:title', `${recipient.name} - ${recipient.tagline}`);
+    updateMetaTag('og:description', `${recipient.creatorType} from ${recipient.location}, ${recipient.country}. See their journey on A Phone and A Dream.`);
+    updateMetaTag('og:image', recipient.avatar);
+    updateMetaTag('og:url', profileUrl);
+    updateMetaTag('twitter:title', `${recipient.name} - ${recipient.tagline}`);
+    updateMetaTag('twitter:description', `${recipient.creatorType} from ${recipient.location}. See their journey on A Phone and A Dream.`);
+    updateMetaTag('twitter:image', recipient.avatar);
+
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [recipient, profileUrl]);
 
   const copyProfileLink = () => {
     navigator.clipboard.writeText(profileUrl);

@@ -17,16 +17,13 @@ export default function Login() {
     navigate('/recipient/dashboard');
   };
 
-  const handleDemoLogin = (role: 'recipient' | 'donor' | 'admin') => {
+  const handleDemoLogin = (role: 'recipient' | 'donor') => {
     switch (role) {
       case 'recipient':
         navigate('/recipient/dashboard');
         break;
       case 'donor':
         navigate('/donor/dashboard');
-        break;
-      case 'admin':
-        navigate('/admin');
         break;
     }
   };
@@ -92,15 +89,12 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" onClick={() => handleDemoLogin('recipient')}>
               Recipient
             </Button>
             <Button variant="outline" onClick={() => handleDemoLogin('donor')}>
               Donor
-            </Button>
-            <Button variant="outline" onClick={() => handleDemoLogin('admin')}>
-              Admin
             </Button>
           </div>
 

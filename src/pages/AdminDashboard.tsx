@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Check, X, Eye } from 'lucide-react';
+import { Check, X, Eye, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -20,7 +21,24 @@ export default function AdminDashboard() {
   return (
     <DashboardLayout role="admin">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-2xl font-display font-bold mb-6">Admin Dashboard</h1>
+        {/* Demo Mode Banner */}
+        <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+            <AlertTriangle className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-primary">Demo Mode - Prototype View</h3>
+            <p className="text-sm text-muted-foreground">
+              This admin panel displays sample data for demonstration purposes. 
+              In production, this would require secure authentication and role-based access control.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mb-6">
+          <h1 className="text-2xl font-display font-bold">Admin Dashboard</h1>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">DEMO</Badge>
+        </div>
 
         <Tabs defaultValue="applications">
           <TabsList className="mb-6">

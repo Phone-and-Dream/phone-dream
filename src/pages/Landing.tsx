@@ -73,10 +73,10 @@ export default function Landing() {
                 Bridging the Digital Divide
               </div>
               
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 animate-fade-in-up text-foreground">
-                Connect Device Donors<br />
-                With Digital Dreamers
-              </h1>
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 animate-fade-in-up text-foreground">
+          Connect Device Donors<br />
+          With <span className="text-primary">Digital Dreamers</span>
+        </h1>
               
               <p className="text-lg md:text-xl text-muted-foreground mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 A phone can change a life. A laptop can launch a career. Join us in empowering the next generation of creators, developers, and entrepreneurs.
