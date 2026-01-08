@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Smartphone, Heart, Users, LayoutDashboard } from 'lucide-react';
+import { Menu, X, Smartphone, Heart, Users, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
   { name: 'Dream Board', href: '/dream-board', icon: Heart },
+  { name: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { name: 'About', href: '/#about', icon: Users },
 ];
 
