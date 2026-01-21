@@ -10,7 +10,9 @@ export type AdminActionType =
   | 'update_xp_rule'
   | 'adjust_xp'
   | 'login'
-  | 'logout';
+  | 'logout'
+  | 'verify_device'
+  | 'reject_device';
 
 export interface AuditLogEntry {
   id: string;
@@ -94,6 +96,8 @@ export function formatActionType(type: AdminActionType): string {
     adjust_xp: 'Adjusted XP',
     login: 'Admin Login',
     logout: 'Admin Logout',
+    verify_device: 'Verified Device',
+    reject_device: 'Rejected Device Verification',
   };
   return map[type] || type;
 }
@@ -102,8 +106,10 @@ export function getActionColor(type: AdminActionType): string {
   switch (type) {
     case 'approve_application':
     case 'confirm_delivery':
+    case 'verify_device':
       return 'text-success';
     case 'reject_application':
+    case 'reject_device':
       return 'text-destructive';
     case 'match_device':
       return 'text-info';
