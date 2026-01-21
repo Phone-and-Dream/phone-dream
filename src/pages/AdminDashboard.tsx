@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2 } from 'lucide-react';
+import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2, ShieldCheck, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,15 +12,18 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { MatchDeviceModal } from '@/components/admin/MatchDeviceModal';
 import { ApplicationDetailModal } from '@/components/admin/ApplicationDetailModal';
+import { DeviceVerificationModal } from '@/components/admin/DeviceVerificationModal';
 import { ApplicationTrendChart, DonationsByRegionChart, DeviceTypeChart, XPGrowthChart } from '@/components/admin/AnalyticsCharts';
 import { XPRulesManager } from '@/components/admin/XPRulesManager';
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
 import { logAdminAction } from '@/lib/auditLog';
+import { getStatusLabel, getStatusColor } from '@/lib/donationStateMachine';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAllApplications, useUpdateApplication } from '@/hooks/useApplications';
 import { useAllDonations, useUpdateDonation } from '@/hooks/useDonations';
 import { useAllRecipientProfiles, useAllDonorProfiles, useAttestations, useActivityLogs, useUpdateApplicationReference, useCreateAttestation } from '@/hooks/useAdminData';
+import { usePendingVerifications, useMakeMatchable } from '@/hooks/useDeviceVerification';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -48,16 +51,19 @@ export default function AdminDashboard() {
   const { data: donorProfiles = [], isLoading: donorsLoading } = useAllDonorProfiles();
   const { data: attestations = [] } = useAttestations();
   const { data: activityLogs = [] } = useActivityLogs();
+  const { data: pendingVerifications = [], isLoading: verificationsLoading } = usePendingVerifications();
   
   // Mutations
   const updateApplication = useUpdateApplication();
   const updateDonation = useUpdateDonation();
   const updateReference = useUpdateApplicationReference();
   const createAttestation = useCreateAttestation();
+  const makeMatchable = useMakeMatchable();
 
   // Filter states
   const [appFilter, setAppFilter] = useState('all');
   const [donationFilter, setDonationFilter] = useState('all');
+  const [verificationFilter, setVerificationFilter] = useState('pending');
   const [userTab, setUserTab] = useState('recipients');
 
   // Modal states
@@ -65,6 +71,8 @@ export default function AdminDashboard() {
   const [isAppDetailOpen, setIsAppDetailOpen] = useState(false);
   const [selectedDonation, setSelectedDonation] = useState<DonationWithDetails | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [selectedVerification, setSelectedVerification] = useState<any>(null);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   const handleLogout = async () => {
     await logAdminAction({
@@ -216,6 +224,7 @@ export default function AdminDashboard() {
 
   const pendingCount = applications.filter(a => a.status === 'pending').length;
   const pendingMatches = donations.filter(d => d.status === 'matchable').length;
+  const pendingVerificationCount = pendingVerifications.length;
   const totalDevices = donations.length;
 
   const formatDate = (dateStr: string) => {
@@ -263,6 +272,15 @@ export default function AdminDashboard() {
         }}>
           <TabsList className="mb-6 flex-wrap">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="verification" className="relative">
+              <ShieldCheck className="h-4 w-4 mr-1" />
+              Verification
+              {pendingVerificationCount > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 text-xs bg-destructive text-destructive-foreground rounded-full">
+                  {pendingVerificationCount}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="applications">Applications ({pendingCount})</TabsTrigger>
             <TabsTrigger value="donations">Donations</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
@@ -342,6 +360,84 @@ export default function AdminDashboard() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </TabsContent>
+
+          {/* VERIFICATION TAB */}
+          <TabsContent value="verification">
+            <div className="glass-card rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5" />
+                  Device Verification Queue
+                </h2>
+                <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending Review</SelectItem>
+                    <SelectItem value="all">All Donations</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {verificationsLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : pendingVerifications.length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <ShieldCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No devices awaiting verification</p>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {pendingVerifications.map((donation: any) => (
+                    <div key={donation.id} className="border rounded-xl p-4 hover:border-primary/50 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium capitalize">{donation.device_type}</p>
+                          <p className="text-sm text-muted-foreground capitalize">{donation.condition}</p>
+                        </div>
+                        <Badge className={getStatusColor(donation.status)}>
+                          {getStatusLabel(donation.status)}
+                        </Badge>
+                      </div>
+                      
+                      {/* Thumbnail preview */}
+                      <div className="grid grid-cols-4 gap-1 mb-3">
+                        {[donation.media_front_url, donation.media_back_url, donation.media_screen_url, donation.media_serial_url]
+                          .filter(Boolean)
+                          .slice(0, 4)
+                          .map((url, i) => (
+                            <div key={i} className="aspect-square rounded overflow-hidden bg-muted">
+                              <img src={url} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={donation.donor?.avatar_url} />
+                          <AvatarFallback>{donation.donor?.full_name?.charAt(0) || 'D'}</AvatarFallback>
+                        </Avatar>
+                        <span>{donation.donor?.full_name || 'Unknown'}</span>
+                      </div>
+
+                      <Button 
+                        className="w-full" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedVerification(donation);
+                          setIsVerificationModalOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Review Device
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -654,6 +750,11 @@ export default function AdminDashboard() {
           onOpenChange={setIsMatchModalOpen}
           donation={selectedDonation}
           onMatch={handleMatch}
+        />
+        <DeviceVerificationModal
+          open={isVerificationModalOpen}
+          onOpenChange={setIsVerificationModalOpen}
+          donation={selectedVerification}
         />
       </div>
     </DashboardLayout>
