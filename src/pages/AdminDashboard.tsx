@@ -215,7 +215,7 @@ export default function AdminDashboard() {
   );
 
   const pendingCount = applications.filter(a => a.status === 'pending').length;
-  const pendingMatches = donations.filter(d => d.status === 'pending').length;
+  const pendingMatches = donations.filter(d => d.status === 'matchable').length;
   const totalDevices = donations.length;
 
   const formatDate = (dateStr: string) => {
@@ -435,7 +435,7 @@ export default function AdminDashboard() {
                       <TableCell><StatusBadge status={d.status} /></TableCell>
                       <TableCell>{formatDate(d.created_at)}</TableCell>
                       <TableCell>
-                        {d.status === 'pending' && (
+                        {d.status === 'matchable' && (
                           <Button size="sm" onClick={() => { setSelectedDonation(d); setIsMatchModalOpen(true); }}>Match</Button>
                         )}
                         {d.status === 'matched' && (

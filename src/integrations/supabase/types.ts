@@ -277,13 +277,23 @@ export type Database = {
           device_type: string
           donor_id: string
           id: string
+          linked_dream_request_id: string | null
           matched_at: string | null
           matched_recipient_id: string | null
+          media_back_url: string | null
+          media_front_url: string | null
+          media_screen_url: string | null
+          media_serial_url: string | null
+          media_video_url: string | null
           needs_refurbishing: boolean
+          rejection_reason: string | null
           repair_contribution: number | null
-          status: Database["public"]["Enums"]["donation_status"]
+          status: Database["public"]["Enums"]["donation_status"] | null
           tracking_number: string | null
           updated_at: string
+          verification_notes: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           condition?: Database["public"]["Enums"]["device_condition"]
@@ -294,13 +304,23 @@ export type Database = {
           device_type: string
           donor_id: string
           id?: string
+          linked_dream_request_id?: string | null
           matched_at?: string | null
           matched_recipient_id?: string | null
+          media_back_url?: string | null
+          media_front_url?: string | null
+          media_screen_url?: string | null
+          media_serial_url?: string | null
+          media_video_url?: string | null
           needs_refurbishing?: boolean
+          rejection_reason?: string | null
           repair_contribution?: number | null
-          status?: Database["public"]["Enums"]["donation_status"]
+          status?: Database["public"]["Enums"]["donation_status"] | null
           tracking_number?: string | null
           updated_at?: string
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           condition?: Database["public"]["Enums"]["device_condition"]
@@ -311,15 +331,33 @@ export type Database = {
           device_type?: string
           donor_id?: string
           id?: string
+          linked_dream_request_id?: string | null
           matched_at?: string | null
           matched_recipient_id?: string | null
+          media_back_url?: string | null
+          media_front_url?: string | null
+          media_screen_url?: string | null
+          media_serial_url?: string | null
+          media_video_url?: string | null
           needs_refurbishing?: boolean
+          rejection_reason?: string | null
           repair_contribution?: number | null
-          status?: Database["public"]["Enums"]["donation_status"]
+          status?: Database["public"]["Enums"]["donation_status"] | null
           tracking_number?: string | null
           updated_at?: string
+          verification_notes?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "donations_linked_dream_request_id_fkey"
+            columns: ["linked_dream_request_id"]
+            isOneToOne: false
+            referencedRelation: "dream_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       donor_profiles: {
         Row: {
@@ -771,6 +809,8 @@ export type Database = {
         | "adjust_xp"
         | "login"
         | "logout"
+        | "verify_device"
+        | "reject_device"
       app_role: "admin" | "donor" | "recipient"
       application_status: "pending" | "approved" | "rejected"
       career_event_category:
@@ -790,7 +830,21 @@ export type Database = {
         | "educator"
         | "other"
       device_condition: "new" | "used" | "refurbished"
-      donation_status: "pending" | "matched" | "in_transit" | "delivered"
+      donation_status:
+        | "draft"
+        | "media_submitted"
+        | "under_verification"
+        | "verification_rejected"
+        | "verified"
+        | "matchable"
+        | "matched"
+        | "logistics_pending"
+        | "pickup_scheduled"
+        | "in_transit"
+        | "received_at_hub"
+        | "out_for_delivery"
+        | "delivered"
+        | "impact_confirmed"
       donor_type: "individual" | "organization"
       dream_status: "open" | "matched" | "fulfilled"
       journey_event_type:
@@ -948,6 +1002,8 @@ export const Constants = {
         "adjust_xp",
         "login",
         "logout",
+        "verify_device",
+        "reject_device",
       ],
       app_role: ["admin", "donor", "recipient"],
       application_status: ["pending", "approved", "rejected"],
@@ -970,7 +1026,22 @@ export const Constants = {
         "other",
       ],
       device_condition: ["new", "used", "refurbished"],
-      donation_status: ["pending", "matched", "in_transit", "delivered"],
+      donation_status: [
+        "draft",
+        "media_submitted",
+        "under_verification",
+        "verification_rejected",
+        "verified",
+        "matchable",
+        "matched",
+        "logistics_pending",
+        "pickup_scheduled",
+        "in_transit",
+        "received_at_hub",
+        "out_for_delivery",
+        "delivered",
+        "impact_confirmed",
+      ],
       donor_type: ["individual", "organization"],
       dream_status: ["open", "matched", "fulfilled"],
       journey_event_type: [
