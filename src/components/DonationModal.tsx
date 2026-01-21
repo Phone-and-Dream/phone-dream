@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Heart, ArrowRight, Check, ExternalLink, DollarSign } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Heart, ArrowRight, Check, ExternalLink, DollarSign, Camera, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,10 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { NFTBadge } from '@/components/NFTBadge';
+import { DeviceMediaUpload, hasAllRequiredMedia } from '@/components/DeviceMediaUpload';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateDonation } from '@/hooks/useDonations';
+import { useSubmitForVerification } from '@/hooks/useDeviceVerification';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
 type DreamRequestWithDetails = Database['public']['Tables']['dream_requests']['Row'] & {
@@ -25,60 +28,126 @@ interface DonationModalProps {
   onClose: () => void;
 }
 
-type DonationStep = 'overview' | 'form' | 'confirm' | 'success';
+type DonationStep = 'overview' | 'form' | 'media' | 'confirm' | 'success';
 
 export function DonationModal({ request, isOpen, onClose }: DonationModalProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createDonation = useCreateDonation();
+  const submitForVerification = useSubmitForVerification();
   
   const [step, setStep] = useState<DonationStep>('overview');
   const [deviceType, setDeviceType] = useState('');
   const [otherDeviceType, setOtherDeviceType] = useState('');
   const [condition, setCondition] = useState<'new' | 'used' | 'refurbished'>('used');
+  const [deviceSpecs, setDeviceSpecs] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [repairContribution, setRepairContribution] = useState('');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
+  
+  // Draft donation state for media upload
+  const [draftDonationId, setDraftDonationId] = useState<string | null>(null);
+  const [mediaUrls, setMediaUrls] = useState<{
+    front?: string | null;
+    back?: string | null;
+    screen?: string | null;
+    serial?: string | null;
+    video?: string | null;
+  }>({});
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
+
+  // Pre-fill device type from dream request
+  useEffect(() => {
+    if (request?.device_needed) {
+      const deviceLower = request.device_needed.toLowerCase();
+      if (deviceLower.includes('laptop')) setDeviceType('laptop');
+      else if (deviceLower.includes('phone') || deviceLower.includes('smartphone')) setDeviceType('smartphone');
+      else if (deviceLower.includes('tablet')) setDeviceType('tablet');
+      else if (deviceLower.includes('desktop') || deviceLower.includes('pc')) setDeviceType('pc');
+      else {
+        setDeviceType('other');
+        setOtherDeviceType(request.device_needed);
+      }
+    }
+  }, [request]);
 
   const handleClose = () => {
     setStep('overview');
     setDeviceType('');
+    setOtherDeviceType('');
     setCondition('used');
+    setDeviceSpecs('');
     setCurrency('USD');
     setRepairContribution('');
+    setDraftDonationId(null);
+    setMediaUrls({});
     onClose();
   };
 
-  const handleSubmit = async () => {
+  // Create draft donation and move to media step
+  const handleProceedToMedia = async () => {
     if (!user) {
       toast({ 
         title: "Please sign in", 
         description: "You need to be logged in as a donor to make a donation.",
         variant: "destructive"
       });
-      navigate('/donor/register');
+      navigate('/signup?role=donor');
       return;
     }
 
+    setIsCreatingDraft(true);
     try {
       const finalDeviceType = deviceType === 'other' ? otherDeviceType : deviceType;
       
-      await createDonation.mutateAsync({
-        device_type: finalDeviceType,
-        condition: condition,
-        needs_refurbishing: request?.needs_refurbishing || false,
-        repair_contribution: repairContribution ? parseFloat(repairContribution) : null,
-        currency: currency,
-        device_specs: null,
-      });
+      // Create donation in draft status
+      const { data, error } = await supabase
+        .from('donations')
+        .insert({
+          donor_id: user.id,
+          device_type: finalDeviceType,
+          device_specs: deviceSpecs || null,
+          condition: condition,
+          needs_refurbishing: request?.needs_refurbishing || false,
+          repair_contribution: repairContribution ? parseFloat(repairContribution) : null,
+          currency: currency,
+          status: 'draft',
+          linked_dream_request_id: request?.id || null,
+        })
+        .select()
+        .single();
 
-      setStep('success');
-      toast({ title: "Donation submitted!", description: "Thank you for your generosity." });
+      if (error) throw error;
+
+      setDraftDonationId(data.id);
+      setStep('media');
     } catch (error) {
       toast({ 
         title: "Error", 
-        description: "Failed to submit donation. Please try again.",
+        description: "Failed to create donation draft. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingDraft(false);
+    }
+  };
+
+  const handleMediaChange = (mediaType: string, url: string | null) => {
+    setMediaUrls(prev => ({ ...prev, [mediaType]: url }));
+  };
+
+  const handleSubmitForVerification = async () => {
+    if (!draftDonationId) return;
+
+    try {
+      await submitForVerification.mutateAsync(draftDonationId);
+      setStep('success');
+      toast({ title: "Donation submitted!", description: "Your device is now awaiting verification." });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Failed to submit for verification. Please try again.",
         variant: "destructive"
       });
     }
@@ -116,6 +185,9 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
   const creatorType = request.recipient_profile?.creator_type || 'Creator';
   const location = request.recipient?.location || 'Unknown';
   const rank = request.recipient_profile?.rank || 'Bronze';
+
+  const isMediaComplete = hasAllRequiredMedia(mediaUrls);
+  const isDeviceTypeValid = deviceType && (deviceType !== 'other' || otherDeviceType.trim().length > 0);
 
   const renderStep = () => {
     switch (step) {
@@ -197,26 +269,6 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
             </DialogHeader>
             
             <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Your Name / Organization *</Label>
-                  <Input 
-                    placeholder="Name or organization" 
-                    value={donorName}
-                    onChange={(e) => setDonorName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email *</Label>
-                  <Input 
-                    type="email" 
-                    placeholder="you@example.com" 
-                    value={donorEmail}
-                    onChange={(e) => setDonorEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label>Device Type *</Label>
                 <Select value={deviceType} onValueChange={setDeviceType}>
@@ -245,6 +297,15 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                   />
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label>Device Specifications (Optional)</Label>
+                <Input 
+                  placeholder="e.g., MacBook Pro 2019, 16GB RAM, 512GB SSD" 
+                  value={deviceSpecs}
+                  onChange={(e) => setDeviceSpecs(e.target.value)}
+                />
+              </div>
 
               <div className="space-y-2">
                 <Label>Condition *</Label>
@@ -289,17 +350,63 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                   <p className="text-xs text-muted-foreground">
                     {getCurrencyLabel(currency)} • Helps cover refurbishing costs
                   </p>
-                  {(currency === 'USDC' || currency === 'USDT') && (
-                    <p className="text-xs text-primary">
-                      Crypto payments processed via Base network
-                    </p>
-                  )}
                 </div>
               )}
 
               <div className="flex gap-3 pt-4">
                 <Button variant="outline" onClick={() => setStep('overview')}>Back</Button>
-                <Button className="flex-1" onClick={() => setStep('confirm')}>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleProceedToMedia}
+                  disabled={!isDeviceTypeValid || isCreatingDraft}
+                >
+                  {isCreatingDraft ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      Upload Photos
+                      <Camera className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </>
+        );
+
+      case 'media':
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                Upload Device Photos
+              </DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6 mt-4">
+              <p className="text-sm text-muted-foreground">
+                Please upload clear photos of your device. All 4 photos are required for verification.
+              </p>
+
+              {draftDonationId && (
+                <DeviceMediaUpload
+                  donationId={draftDonationId}
+                  mediaUrls={mediaUrls}
+                  onMediaChange={handleMediaChange}
+                />
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" onClick={() => setStep('form')}>Back</Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={() => setStep('confirm')}
+                  disabled={!isMediaComplete}
+                >
                   Review Donation
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -323,6 +430,12 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                     <dt className="text-muted-foreground">Device</dt>
                     <dd className="font-medium capitalize">{deviceType === 'other' ? otherDeviceType : deviceType}</dd>
                   </div>
+                  {deviceSpecs && (
+                    <div className="flex justify-between">
+                      <dt className="text-muted-foreground">Specs</dt>
+                      <dd className="font-medium">{deviceSpecs}</dd>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Condition</dt>
                     <dd className="font-medium capitalize">{condition}</dd>
@@ -330,6 +443,10 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                   <div className="flex justify-between">
                     <dt className="text-muted-foreground">Recipient</dt>
                     <dd className="font-medium">{recipientName}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Photos</dt>
+                    <dd className="font-medium text-green-600">✓ 4 photos uploaded</dd>
                   </div>
                   {repairContribution && (
                     <div className="flex justify-between">
@@ -340,20 +457,42 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                 </dl>
               </div>
 
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                <p className="text-sm flex items-start gap-2">
+                  <span className="text-blue-500">📋</span>
+                  <span>
+                    <strong>Next Steps:</strong> Your device photos will be reviewed by our team. Once verified, you'll be matched with {recipientName}.
+                  </span>
+                </p>
+              </div>
+
               <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
                 <p className="text-sm flex items-start gap-2">
                   <span className="text-primary">🔗</span>
                   <span>
-                    <strong>Blockchain Attestation:</strong> Your donation will be recorded on the Base blockchain as a Soulbound Token (SBT), creating permanent, verifiable proof of your impact.
+                    <strong>Blockchain Attestation:</strong> After delivery, your impact will be recorded on the Base blockchain as a Soulbound Token (SBT).
                   </span>
                 </p>
               </div>
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep('form')}>Back</Button>
-                <Button className="flex-1" onClick={handleSubmit} disabled={createDonation.isPending}>
-                  <Check className="h-4 w-4 mr-2" />
-                  {createDonation.isPending ? 'Submitting...' : 'Confirm & Submit'}
+                <Button variant="outline" onClick={() => setStep('media')}>Back</Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleSubmitForVerification} 
+                  disabled={submitForVerification.isPending}
+                >
+                  {submitForVerification.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Submit for Verification
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
@@ -371,27 +510,31 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
               <div>
                 <h2 className="text-2xl font-display font-bold mb-2">Thank You! 🎉</h2>
                 <p className="text-muted-foreground">
-                  Your donation has been submitted. You're helping {recipientName} achieve their dreams!
+                  Your donation has been submitted for verification. We'll review your device photos shortly.
                 </p>
               </div>
 
-              {/* NFT Badge Preview */}
-              <div className="flex justify-center">
-                <NFTBadge
-                  donorName={donorName || "Anonymous Donor"}
-                  donorId="preview"
-                  recipientName={recipientName}
-                  recipientId={request.recipient_id}
-                  deviceType={deviceType === 'other' ? otherDeviceType : deviceType}
-                  condition={condition === 'new' ? 'New' : 'Refurbished'}
-                  txHash="0x7a3b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c"
-                  date={new Date().toISOString()}
-                  size="md"
-                />
-              </div>
-
-              <div className="text-sm text-muted-foreground">
-                <p>Your Impact Link Badge (SBT) will be minted once the donation is verified.</p>
+              {/* Status info */}
+              <div className="p-4 bg-muted/50 rounded-xl text-left">
+                <h4 className="font-semibold mb-2">What happens next?</h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">1.</span>
+                    Our team reviews your device photos (usually within 24 hours)
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">2.</span>
+                    Once verified, your device is matched to {recipientName}
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">3.</span>
+                    You'll receive instructions for shipping or drop-off
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-primary">4.</span>
+                    After delivery, your Impact SBT badge will be minted!
+                  </li>
+                </ul>
               </div>
 
               <div className="flex flex-col gap-2">
