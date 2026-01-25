@@ -118,10 +118,11 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
           recipient_selection_method: 'donor_choice',
           pre_selected_recipient_id: request?.recipient_id || null,
         })
-        .select()
-        .single();
+        .select('id')
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error('Failed to create donation - no data returned');
 
       setDraftDonationId(data.id);
       setStep('media');
