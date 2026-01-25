@@ -19,9 +19,10 @@ import type { Database } from '@/integrations/supabase/types';
 const steps = [
   { id: 1, title: 'Personal Info' },
   { id: 2, title: 'Background' },
-  { id: 3, title: 'References' },
-  { id: 4, title: 'Upload Letter' },
-  { id: 5, title: 'Review' },
+  { id: 3, title: 'Goals' },
+  { id: 4, title: 'References' },
+  { id: 5, title: 'Upload Letter' },
+  { id: 6, title: 'Review' },
 ];
 
 interface Reference {
@@ -57,6 +58,7 @@ export default function RecipientApply() {
     { name: '', relationship: '', contact: '' }
   ]);
   const [letterUploaded, setLetterUploaded] = useState(false);
+  const [milestones, setMilestones] = useState<string[]>(['', '', '', '', '']);
 
   // Validation helpers
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -66,6 +68,14 @@ export default function RecipientApply() {
       r.name.trim() && r.relationship.trim() && r.contact.trim()
     ).length;
   }, [references]);
+
+  const validMilestonesCount = milestones.filter(m => m.trim().length > 0).length;
+
+  const updateMilestone = (index: number, value: string) => {
+    const updated = [...milestones];
+    updated[index] = value;
+    setMilestones(updated);
+  };
 
   const isStepValid = (step: number): boolean => {
     switch (step) {
@@ -87,11 +97,13 @@ export default function RecipientApply() {
           wordCount >= 150 && wordCount <= 500
         );
       case 3:
-        return validReferencesCount >= 2;
+        return validMilestonesCount >= 3; // At least 3 milestones required
       case 4:
-        return true; // Optional step
+        return validReferencesCount >= 2;
       case 5:
-        return isStepValid(1) && isStepValid(2) && isStepValid(3);
+        return true; // Optional step
+      case 6:
+        return isStepValid(1) && isStepValid(2) && isStepValid(3) && isStepValid(4);
       default:
         return false;
     }
@@ -162,10 +174,12 @@ export default function RecipientApply() {
 
       if (profileError) throw profileError;
 
-      // Create application
+      // Create application with milestones
+      const validMilestones = milestones.filter(m => m.trim().length > 0);
       const application = await createApplication.mutateAsync({
         device_needed: deviceNeeded === 'other' ? otherDeviceNeeded : deviceNeeded,
         purpose: purpose,
+        milestones: validMilestones.length > 0 ? validMilestones : null,
       });
 
       // Create references
@@ -401,6 +415,56 @@ export default function RecipientApply() {
       case 3:
         return (
           <div className="space-y-6">
+            <div>
+              <p className="text-muted-foreground mb-4">
+                Tell us what you'll achieve with this device. List 3-5 specific goals or milestones 
+                you plan to accomplish. This helps donors understand the impact of their contribution.
+              </p>
+              <span className={cn(
+                "text-sm font-medium px-2 py-1 rounded inline-block",
+                validMilestonesCount >= 3 ? "bg-accent/10 text-accent" : "bg-muted text-muted-foreground"
+              )}>
+                {validMilestonesCount}/3 minimum (5 max)
+              </span>
+            </div>
+            <div className="space-y-3">
+              {milestones.map((milestone, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <div className={cn(
+                    "h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-sm font-medium",
+                    milestone.trim() ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {milestone.trim() ? <Check className="h-4 w-4" /> : index + 1}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <Input
+                      placeholder={
+                        index === 0 ? "e.g., Complete a web development bootcamp" :
+                        index === 1 ? "e.g., Build and launch my first portfolio website" :
+                        index === 2 ? "e.g., Land my first freelance client within 6 months" :
+                        index === 3 ? "e.g., Start a tech blog to share my learning journey" :
+                        "e.g., Mentor other aspiring developers in my community"
+                      }
+                      value={milestone}
+                      onChange={(e) => updateMilestone(index, e.target.value)}
+                      className={cn(milestone.trim() && "border-accent/50")}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-sm text-muted-foreground">
+                💡 <strong>Tip:</strong> Be specific and realistic. Donors love to see clear, 
+                achievable goals with timelines. These milestones will be visible on your Dream Board listing.
+              </p>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <p className="text-muted-foreground">
                 Please provide 2-3 references who can vouch for your application.
@@ -472,7 +536,7 @@ export default function RecipientApply() {
           </div>
         );
 
-      case 4:
+      case 5:
         return (
           <div className="space-y-6">
             <p className="text-muted-foreground">
@@ -510,7 +574,7 @@ export default function RecipientApply() {
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6">
             <div className="glass-card rounded-xl p-6">
@@ -537,6 +601,10 @@ export default function RecipientApply() {
                   <dd className="font-medium capitalize">{deviceNeeded === 'other' ? otherDeviceNeeded : deviceNeeded || 'Not provided'}</dd>
                 </div>
                 <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Goals/Milestones</dt>
+                  <dd className="font-medium">{validMilestonesCount} listed</dd>
+                </div>
+                <div className="flex justify-between">
                   <dt className="text-muted-foreground">References</dt>
                   <dd className="font-medium">{validReferencesCount} provided</dd>
                 </div>
@@ -545,6 +613,19 @@ export default function RecipientApply() {
                   <dd className="font-medium">{letterUploaded ? 'Uploaded' : 'Not uploaded'}</dd>
                 </div>
               </dl>
+              {validMilestonesCount > 0 && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm font-medium mb-2">What you'll achieve:</p>
+                  <ul className="space-y-1">
+                    {milestones.filter(m => m.trim()).map((m, i) => (
+                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <Check className="h-3 w-3 text-accent mt-1 shrink-0" />
+                        {m}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <div className="p-4 bg-primary/5 rounded-xl border border-primary/20">
               <p className="text-sm">

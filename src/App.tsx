@@ -15,6 +15,7 @@ import RecipientPublicProfile from "./pages/RecipientPublicProfile";
 import DonorRegister from "./pages/DonorRegister";
 import DonorDashboard from "./pages/DonorDashboard";
 import DonorPublicProfile from "./pages/DonorPublicProfile";
+import CashDonate from "./pages/CashDonate";
 import DreamBoard from "./pages/DreamBoard";
 import Leaderboard from "./pages/Leaderboard";
 import AdminLogin from "./pages/AdminLogin";
@@ -67,6 +68,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
+            <Route path="/donor/cash-donate" element={<CashDonate />} />
             <Route path="/dream-board" element={<DreamBoard />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/admin/login" element={<AdminLogin />} />
