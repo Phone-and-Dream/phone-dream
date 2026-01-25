@@ -10,6 +10,7 @@ import { EditDonorProfileModal } from '@/components/EditDonorProfileModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyProfile, useMyDonorProfile } from '@/hooks/useProfiles';
 import { useMyDonations } from '@/hooks/useDonations';
+import { useMyCashDonations } from '@/hooks/useCashDonations';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -19,8 +20,9 @@ export default function DonorDashboard() {
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const { data: donorProfile, isLoading: donorLoading } = useMyDonorProfile();
   const { data: donations = [], isLoading: donationsLoading } = useMyDonations();
+  const { data: cashDonations = [], isLoading: cashLoading } = useMyCashDonations();
 
-  const isLoading = profileLoading || donorLoading || donationsLoading;
+  const isLoading = profileLoading || donorLoading || donationsLoading || cashLoading;
 
   const copyProfileLink = () => {
     if (user?.id) {
@@ -30,10 +32,15 @@ export default function DonorDashboard() {
   };
 
   // Calculate stats from real data
+  const totalCashDonated = cashDonations
+    .filter(d => d.status === 'completed')
+    .reduce((sum, d) => sum + d.amount, 0);
+
   const stats = {
     totalDonated: donorProfile?.total_donated || donations.length,
     recipientsHelped: donorProfile?.recipients_helped || donations.filter(d => d.status === 'delivered').length,
     regionsReached: donorProfile?.regions_reached || 1,
+    cashDonated: totalCashDonated,
   };
 
   // Get delivered donations for NFT badges
@@ -120,8 +127,9 @@ export default function DonorDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-4 gap-4">
           <StatCard icon={<Gift className="h-5 w-5" />} label="Devices Donated" value={stats.totalDonated} />
+          <StatCard icon={<DollarSign className="h-5 w-5" />} label="Cash Donated" value={`$${stats.cashDonated.toLocaleString()}`} />
           <StatCard icon={<Users className="h-5 w-5" />} label="Recipients Helped" value={stats.recipientsHelped} />
           <StatCard icon={<Globe className="h-5 w-5" />} label="Regions Reached" value={stats.regionsReached} />
         </div>
@@ -152,9 +160,9 @@ export default function DonorDashboard() {
           </div>
         )}
 
-        {/* Donation History Table */}
+        {/* Device Donation History Table */}
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-xl font-display font-semibold mb-4">Donation History</h2>
+          <h2 className="text-xl font-display font-semibold mb-4">Device Donation History</h2>
           {donations.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -201,9 +209,54 @@ export default function DonorDashboard() {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               <Gift className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No donations yet. Make your first donation to see it here!</p>
+              <p>No device donations yet. Make your first donation to see it here!</p>
               <Button asChild className="mt-4">
                 <Link to="/donor/register">Donate a Device</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Cash Donation History Table */}
+        <div className="glass-card rounded-2xl p-6">
+          <h2 className="text-xl font-display font-semibold mb-4">Cash Donation History</h2>
+          {cashDonations.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border text-left text-sm text-muted-foreground">
+                    <th className="pb-3 font-medium">Amount</th>
+                    <th className="pb-3 font-medium">Allocation</th>
+                    <th className="pb-3 font-medium">Status</th>
+                    <th className="pb-3 font-medium">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm">
+                  {cashDonations.map((donation) => (
+                    <tr key={donation.id} className="border-b border-border/50">
+                      <td className="py-4 font-medium">${donation.amount.toLocaleString()} {donation.currency}</td>
+                      <td className="py-4 capitalize">
+                        {donation.allocation_method === 'platform' 
+                          ? 'Platform Choice' 
+                          : donation.linked_recipient_id 
+                            ? 'Specific Recipient'
+                            : donation.linked_dream_request_id
+                              ? 'Dream Request'
+                              : donation.allocation_method}
+                      </td>
+                      <td className="py-4"><StatusBadge status={donation.status} /></td>
+                      <td className="py-4 text-muted-foreground">{format(new Date(donation.created_at), 'MMM d, yyyy')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No cash donations yet.</p>
+              <Button asChild className="mt-4">
+                <Link to="/donor/cash-donate">Make a Cash Donation</Link>
               </Button>
             </div>
           )}

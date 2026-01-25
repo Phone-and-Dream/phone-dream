@@ -13,8 +13,9 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { MatchDeviceModal } from '@/components/admin/MatchDeviceModal';
 import { ApplicationDetailModal } from '@/components/admin/ApplicationDetailModal';
 import { DeviceVerificationModal } from '@/components/admin/DeviceVerificationModal';
-import { ApplicationTrendChart, DonationsByRegionChart, DeviceTypeChart, XPGrowthChart } from '@/components/admin/AnalyticsCharts';
+import { ApplicationTrendChart, DonationsByRegionChart, DeviceTypeChart, XPGrowthChart, CashDonationsTrendChart } from '@/components/admin/AnalyticsCharts';
 import { XPRulesManager } from '@/components/admin/XPRulesManager';
+import { useAllCashDonations } from '@/hooks/useCashDonations';
 import { TaskManager } from '@/components/admin/TaskManager';
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
 import { logAdminAction } from '@/lib/auditLog';
@@ -53,6 +54,7 @@ export default function AdminDashboard() {
   const { data: attestations = [] } = useAttestations();
   const { data: activityLogs = [] } = useActivityLogs();
   const { data: pendingVerifications = [], isLoading: verificationsLoading } = usePendingVerifications();
+  const { data: cashDonations = [], isLoading: cashLoading } = useAllCashDonations();
   
   // Mutations
   const updateApplication = useUpdateApplication();
@@ -227,6 +229,9 @@ export default function AdminDashboard() {
   const pendingMatches = donations.filter(d => d.status === 'matchable').length;
   const pendingVerificationCount = pendingVerifications.length;
   const totalDevices = donations.length;
+  const totalCashReceived = cashDonations
+    .filter(d => d.status === 'completed')
+    .reduce((sum, d) => sum + d.amount, 0);
 
   const formatDate = (dateStr: string) => {
     try {
@@ -236,7 +241,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const isLoading = appsLoading || donationsLoading || recipientsLoading || donorsLoading;
+  const isLoading = appsLoading || donationsLoading || recipientsLoading || donorsLoading || cashLoading;
 
   if (isLoading) {
     return (
@@ -299,7 +304,7 @@ export default function AdminDashboard() {
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview">
-            <div className="grid md:grid-cols-5 gap-4 mb-6">
+            <div className="grid md:grid-cols-6 gap-4 mb-6">
               <div className="glass-card rounded-xl p-4 text-center">
                 <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-3xl font-bold text-primary">{recipientProfiles.length}</p>
@@ -314,6 +319,11 @@ export default function AdminDashboard() {
                 <Package className="h-6 w-6 mx-auto mb-2 text-success" />
                 <p className="text-3xl font-bold text-success">{totalDevices}</p>
                 <p className="text-sm text-muted-foreground">Devices</p>
+              </div>
+              <div className="glass-card rounded-xl p-4 text-center">
+                <TrendingUp className="h-6 w-6 mx-auto mb-2 text-accent" />
+                <p className="text-3xl font-bold text-accent">${totalCashReceived.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Cash Received</p>
               </div>
               <div className="glass-card rounded-xl p-4 text-center">
                 <Clock className="h-6 w-6 mx-auto mb-2 text-warning" />
@@ -725,6 +735,7 @@ export default function AdminDashboard() {
             <div className="grid md:grid-cols-2 gap-6">
               <ApplicationTrendChart />
               <DeviceTypeChart />
+              <CashDonationsTrendChart data={cashDonations} />
               <DonationsByRegionChart />
               <XPGrowthChart />
             </div>
