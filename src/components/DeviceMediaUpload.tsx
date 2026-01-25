@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useDeviceMediaUpload, MediaType } from '@/hooks/useDeviceMediaUpload';
 import { Camera, Video, X, Check, Upload, Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,11 +15,10 @@ interface MediaSlot {
   icon: typeof Camera;
 }
 
+// Only requires front and back photos now
 const MEDIA_SLOTS: MediaSlot[] = [
   { type: 'front', label: 'Front', description: 'Front view of device', required: true, icon: Camera },
   { type: 'back', label: 'Back', description: 'Back view of device', required: true, icon: Camera },
-  { type: 'screen', label: 'Screen', description: 'Screen powered on', required: true, icon: Camera },
-  { type: 'serial', label: 'Serial/IMEI', description: 'Serial number visible', required: true, icon: Camera },
 ];
 
 interface DeviceMediaUploadProps {
@@ -29,7 +30,9 @@ interface DeviceMediaUploadProps {
     serial?: string | null;
     video?: string | null;
   };
+  serialImeiText?: string;
   onMediaChange?: (mediaType: MediaType, url: string | null) => void;
+  onSerialImeiChange?: (text: string) => void;
   disabled?: boolean;
   className?: string;
 }
@@ -37,12 +40,15 @@ interface DeviceMediaUploadProps {
 export function DeviceMediaUpload({
   donationId,
   mediaUrls,
+  serialImeiText = '',
   onMediaChange,
+  onSerialImeiChange,
   disabled = false,
   className,
 }: DeviceMediaUploadProps) {
   const { uploadImage, uploadVideo, deleteMedia, isUploading, progress } = useDeviceMediaUpload();
   const [localUrls, setLocalUrls] = useState(mediaUrls);
+  const [localSerialImei, setLocalSerialImei] = useState(serialImeiText);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleFileSelect = async (mediaType: MediaType, file: File) => {
@@ -73,6 +79,11 @@ export function DeviceMediaUpload({
     fileInputRefs.current[mediaType]?.click();
   };
 
+  const handleSerialImeiChange = (value: string) => {
+    setLocalSerialImei(value);
+    onSerialImeiChange?.(value);
+  };
+
   const requiredComplete = MEDIA_SLOTS.filter(s => s.required)
     .every(slot => localUrls[slot.type]);
 
@@ -82,7 +93,7 @@ export function DeviceMediaUpload({
       <div className="flex items-center gap-2">
         <Camera className="h-5 w-5 text-primary" />
         <h3 className="font-semibold">Device Photos</h3>
-        <span className="text-xs text-muted-foreground">(All 4 required)</span>
+        <span className="text-xs text-muted-foreground">(2 required)</span>
         {requiredComplete && (
           <span className="ml-auto flex items-center gap-1 text-sm text-green-600">
             <Check className="h-4 w-4" />
@@ -91,8 +102,8 @@ export function DeviceMediaUpload({
         )}
       </div>
 
-      {/* Photo grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Photo grid - 2 columns */}
+      <div className="grid grid-cols-2 gap-4">
         {MEDIA_SLOTS.map((slot) => {
           const url = localUrls[slot.type];
           const isSlotUploading = isUploading && progress[slot.type] !== undefined && progress[slot.type] < 100;
@@ -163,6 +174,24 @@ export function DeviceMediaUpload({
             </div>
           );
         })}
+      </div>
+
+      {/* Serial/IMEI text input (optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="serial-imei" className="flex items-center gap-2">
+          Serial/IMEI Number
+          <span className="text-xs text-muted-foreground">(Optional)</span>
+        </Label>
+        <Input
+          id="serial-imei"
+          placeholder="Enter serial number or IMEI (optional)"
+          value={localSerialImei}
+          onChange={(e) => handleSerialImeiChange(e.target.value)}
+          disabled={disabled}
+        />
+        <p className="text-xs text-muted-foreground">
+          This helps verify the device authenticity but is not required.
+        </p>
       </div>
 
       {/* Video upload section */}
@@ -236,7 +265,7 @@ export function DeviceMediaUpload({
         <Alert variant="destructive" className="bg-destructive/10">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Please upload all 4 required photos before submitting for verification.
+            Please upload both required photos (front and back) before submitting for verification.
           </AlertDescription>
         </Alert>
       )}
@@ -244,12 +273,12 @@ export function DeviceMediaUpload({
   );
 }
 
-// Helper to check if all required media is uploaded
+// Helper to check if all required media is uploaded (now only front and back)
 export function hasAllRequiredMedia(mediaUrls: {
   front?: string | null;
   back?: string | null;
   screen?: string | null;
   serial?: string | null;
 }): boolean {
-  return Boolean(mediaUrls.front && mediaUrls.back && mediaUrls.screen && mediaUrls.serial);
+  return Boolean(mediaUrls.front && mediaUrls.back);
 }

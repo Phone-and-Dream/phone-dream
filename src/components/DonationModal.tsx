@@ -389,7 +389,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
             
             <div className="space-y-6 mt-4">
               <p className="text-sm text-muted-foreground">
-                Please upload clear photos of your device. All 4 photos are required for verification.
+                Please upload clear photos of your device (front and back). These are required for verification.
               </p>
 
               {draftDonationId && (

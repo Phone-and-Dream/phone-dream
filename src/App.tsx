@@ -22,6 +22,8 @@ import AdminDashboard from "./pages/AdminDashboard";
 import RoleSelection from "./pages/RoleSelection";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import DonorSettings from "./pages/DonorSettings";
+import RecipientSettings from "./pages/RecipientSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,11 +49,21 @@ const App = () => (
                 <RecipientDashboard />
               </ProtectedRoute>
             } />
+            <Route path="/recipient/settings" element={
+              <ProtectedRoute requiredRole="recipient">
+                <RecipientSettings />
+              </ProtectedRoute>
+            } />
             <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
             <Route path="/donor/register" element={<DonorRegister />} />
             <Route path="/donor/dashboard" element={
               <ProtectedRoute requiredRole="donor">
                 <DonorDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/donor/settings" element={
+              <ProtectedRoute requiredRole="donor">
+                <DonorSettings />
               </ProtectedRoute>
             } />
             <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />

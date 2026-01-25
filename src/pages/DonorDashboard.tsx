@@ -93,6 +93,29 @@ export default function DonorDashboard() {
           </div>
         </div>
 
+        {/* First time donor CTA */}
+        {donations.length === 0 && (
+          <div className="glass-card rounded-2xl p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
+            <div className="flex flex-col md:flex-row items-center gap-6">
+              <div className="h-20 w-20 rounded-2xl bg-primary/20 flex items-center justify-center">
+                <Gift className="h-10 w-10 text-primary" />
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-xl font-display font-bold mb-2">Ready to Make a Difference?</h2>
+                <p className="text-muted-foreground mb-4">
+                  Your unused device could change someone's life. Donate your first device and help a creator achieve their dreams.
+                </p>
+                <Button asChild size="lg">
+                  <Link to="/donor/register">
+                    <Gift className="h-5 w-5 mr-2" />
+                    Donate Your First Device
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-4">
           <StatCard icon={<Gift className="h-5 w-5" />} label="Devices Donated" value={stats.totalDonated} />
