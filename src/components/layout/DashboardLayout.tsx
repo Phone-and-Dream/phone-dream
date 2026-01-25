@@ -11,7 +11,8 @@ import {
   Gift,
   BarChart3,
   Trophy,
-  ChevronLeft
+  ChevronLeft,
+  ClipboardList
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ interface DashboardLayoutProps {
 
 const recipientLinks = [
   { name: 'My Portfolio', href: '/recipient/dashboard', icon: LayoutDashboard },
+  { name: 'Earn XP', href: '/recipient/tasks', icon: Trophy },
   { name: 'Dream Board', href: '/dream-board', icon: Heart },
   { name: 'Settings', href: '/recipient/settings', icon: Settings },
 ];

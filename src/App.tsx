@@ -12,6 +12,7 @@ import RecipientApply from "./pages/RecipientApply";
 import RecipientApplySuccess from "./pages/RecipientApplySuccess";
 import RecipientDashboard from "./pages/RecipientDashboard";
 import RecipientPublicProfile from "./pages/RecipientPublicProfile";
+import RecipientTasks from "./pages/RecipientTasks";
 import DonorRegister from "./pages/DonorRegister";
 import DonorDashboard from "./pages/DonorDashboard";
 import DonorPublicProfile from "./pages/DonorPublicProfile";
@@ -48,6 +49,11 @@ const App = () => (
             <Route path="/recipient/dashboard" element={
               <ProtectedRoute requiredRole="recipient">
                 <RecipientDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/recipient/tasks" element={
+              <ProtectedRoute requiredRole="recipient">
+                <RecipientTasks />
               </ProtectedRoute>
             } />
             <Route path="/recipient/settings" element={
