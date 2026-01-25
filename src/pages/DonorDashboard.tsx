@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Gift, Users, Globe, ExternalLink, Copy, Share2, Loader2, Pencil, DollarSign } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/ui/stat-card';
@@ -63,9 +64,12 @@ export default function DonorDashboard() {
         <div className="glass-card rounded-2xl p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
-                {profile?.full_name?.charAt(0) || donorProfile?.organization_name?.charAt(0) || '?'}
-              </div>
+              <Avatar className="h-16 w-16 rounded-2xl">
+                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || donorProfile?.organization_name || 'Profile'} className="object-cover rounded-2xl" />
+                <AvatarFallback className="rounded-2xl bg-primary/10 text-3xl font-bold text-primary">
+                  {profile?.full_name?.charAt(0) || donorProfile?.organization_name?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <h1 className="text-2xl font-display font-bold">
                   {donorProfile?.organization_name || profile?.full_name || 'Your Name'}

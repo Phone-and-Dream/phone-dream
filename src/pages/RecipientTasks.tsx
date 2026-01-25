@@ -21,7 +21,7 @@ import { Progress } from '@/components/ui/progress';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useTasksWithProgress, useStartTask, useCanApplyForDevice, TaskWithProgress } from '@/hooks/useRecipientTasks';
+import { useTasksWithProgress, useStartTask, useCompleteTask, useCanApplyForDevice, TaskWithProgress } from '@/hooks/useRecipientTasks';
 import { useMyProfile, useMyRecipientProfile } from '@/hooks/useProfiles';
 import { useMySkills, useMyProjects, useMyCourses, useMyCareerEvents, useMyRecommendations } from '@/hooks/useRecipientData';
 import { toast } from '@/hooks/use-toast';
@@ -39,13 +39,17 @@ const taskTypeIcons: Record<string, React.ReactNode> = {
 
 function TaskCard({ 
   task, 
-  onStart, 
+  onStart,
+  onComplete,
   isStarting,
+  isCompleting,
   isAutoCompleted
 }: { 
   task: TaskWithProgress; 
   onStart: (taskId: string) => void;
+  onComplete: (taskId: string, xpValue: number) => void;
   isStarting: boolean;
+  isCompleting: boolean;
   isAutoCompleted: boolean;
 }) {
   const status = task.recipientTask?.status || 'not_started';
@@ -70,7 +74,13 @@ function TaskCard({
     if (task.task_type === 'social' && task.action_url) {
       window.open(task.action_url, '_blank');
     }
-    onStart(task.id);
+    
+    // If task is already in progress, complete it; otherwise start it
+    if (status === 'in_progress') {
+      onComplete(task.id, task.xp_value);
+    } else {
+      onStart(task.id);
+    }
   };
 
   return (
@@ -115,9 +125,9 @@ function TaskCard({
                   size="sm" 
                   variant={isInProgress ? "default" : "outline"}
                   onClick={handleAction}
-                  disabled={isStarting}
+                  disabled={isStarting || isCompleting}
                 >
-                  {isStarting ? (
+                  {isStarting || isCompleting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : isInProgress ? (
                     <>Complete</>
@@ -150,7 +160,9 @@ export default function RecipientTasks() {
   const { data: recommendations = [] } = useMyRecommendations();
   
   const startTask = useStartTask();
+  const completeTask = useCompleteTask();
   const [startingTaskId, setStartingTaskId] = useState<string | null>(null);
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
 
   // Check auto-completion conditions based on profile data
   const getAutoCompletedTasks = () => {
@@ -223,6 +235,26 @@ export default function RecipientTasks() {
       });
     } finally {
       setStartingTaskId(null);
+    }
+  };
+
+  const handleCompleteTask = async (taskId: string, xpValue: number) => {
+    setCompletingTaskId(taskId);
+    try {
+      await completeTask.mutateAsync({ taskId, xpAwarded: xpValue });
+      toast({
+        title: "Task completed! 🎉",
+        description: `You earned ${xpValue} XP!`,
+      });
+    } catch (error) {
+      console.error('Error completing task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete task. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCompletingTaskId(null);
     }
   };
 
@@ -319,7 +351,9 @@ export default function RecipientTasks() {
                   key={task.id} 
                   task={task} 
                   onStart={handleStartTask}
+                  onComplete={handleCompleteTask}
                   isStarting={startingTaskId === task.id}
+                  isCompleting={completingTaskId === task.id}
                   isAutoCompleted={autoCompletedTasks[task.id] || false}
                 />
               ))}
@@ -343,7 +377,9 @@ export default function RecipientTasks() {
                   key={task.id} 
                   task={task} 
                   onStart={handleStartTask}
+                  onComplete={handleCompleteTask}
                   isStarting={startingTaskId === task.id}
+                  isCompleting={completingTaskId === task.id}
                   isAutoCompleted={autoCompletedTasks[task.id] || false}
                 />
               ))}
@@ -367,7 +403,9 @@ export default function RecipientTasks() {
                   key={task.id} 
                   task={task} 
                   onStart={handleStartTask}
+                  onComplete={handleCompleteTask}
                   isStarting={startingTaskId === task.id}
+                  isCompleting={completingTaskId === task.id}
                   isAutoCompleted={autoCompletedTasks[task.id] || false}
                 />
               ))}
