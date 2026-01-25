@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle, Loader2, Lock, Trophy, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle, Loader2, Lock, Trophy, ArrowRight, FileText } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { useMySkills, useMyProjects, useMyCourses, useMyCareerEvents, useMyRecom
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { countWords } from '@/lib/sanitize';
+import { useReferenceLetterUpload } from '@/hooks/useReferenceLetterUpload';
 import type { Database } from '@/integrations/supabase/types';
 
 const XP_THRESHOLD = 100;
@@ -89,7 +90,10 @@ export default function RecipientApply() {
     { name: '', relationship: '', contact: '' },
     { name: '', relationship: '', contact: '' }
   ]);
-  const [letterUploaded, setLetterUploaded] = useState(false);
+  const [letterFile, setLetterFile] = useState<File | null>(null);
+  const [letterUrl, setLetterUrl] = useState<string | null>(null);
+  const letterInputRef = useRef<HTMLInputElement>(null);
+  const uploadLetter = useReferenceLetterUpload();
   const [milestones, setMilestones] = useState<string[]>(['', '', '', '', '']);
 
   // Validation helpers
@@ -206,12 +210,13 @@ export default function RecipientApply() {
 
       if (profileError) throw profileError;
 
-      // Create application with milestones
+      // Create application with milestones and letter URL
       const validMilestones = milestones.filter(m => m.trim().length > 0);
       const application = await createApplication.mutateAsync({
         device_needed: deviceNeeded === 'other' ? otherDeviceNeeded : deviceNeeded,
         purpose: purpose,
         milestones: validMilestones.length > 0 ? validMilestones : null,
+        reference_letter_url: letterUrl || null,
       });
 
       // Create references
@@ -569,22 +574,92 @@ export default function RecipientApply() {
         );
 
       case 5:
+        const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+
+          // Validate file type
+          const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+          if (!allowedTypes.includes(file.type)) {
+            toast({
+              title: "Invalid file type",
+              description: "Please upload a PDF, DOC, or DOCX file.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Validate file size (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            toast({
+              title: "File too large",
+              description: "Maximum file size is 5MB.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          setLetterFile(file);
+          
+          // Upload the file
+          uploadLetter.mutate(file, {
+            onSuccess: (result) => {
+              setLetterUrl(result.url);
+              toast({
+                title: "File uploaded",
+                description: "Your reference letter has been uploaded successfully.",
+              });
+            },
+            onError: (error) => {
+              console.error('Upload error:', error);
+              setLetterFile(null);
+              toast({
+                title: "Upload failed",
+                description: error instanceof Error ? error.message : "Failed to upload file.",
+                variant: "destructive",
+              });
+            },
+          });
+        };
+
         return (
           <div className="space-y-6">
             <p className="text-muted-foreground">
               Please upload a reference letter from one of your references. This helps us verify your application.
             </p>
+            
+            <input
+              type="file"
+              ref={letterInputRef}
+              className="hidden"
+              accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              onChange={handleFileChange}
+            />
+            
             <div 
               className={cn(
                 "border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer",
-                letterUploaded ? "border-accent bg-accent/5" : "border-border hover:border-primary/50"
+                letterFile ? "border-accent bg-accent/5" : "border-border hover:border-primary/50",
+                uploadLetter.isPending && "opacity-50 pointer-events-none"
               )}
-              onClick={() => setLetterUploaded(true)}
+              onClick={() => letterInputRef.current?.click()}
             >
-              {letterUploaded ? (
+              {uploadLetter.isPending ? (
                 <>
-                  <Check className="h-12 w-12 mx-auto text-accent mb-4" />
-                  <p className="font-medium">reference_letter.pdf uploaded</p>
+                  <Loader2 className="h-12 w-12 mx-auto text-primary mb-4 animate-spin" />
+                  <p className="font-medium">Uploading...</p>
+                  <p className="text-sm text-muted-foreground mt-1">Please wait</p>
+                </>
+              ) : letterFile ? (
+                <>
+                  <div className="h-12 w-12 mx-auto text-accent mb-4 flex items-center justify-center">
+                    {letterUrl ? (
+                      <Check className="h-12 w-12" />
+                    ) : (
+                      <FileText className="h-12 w-12" />
+                    )}
+                  </div>
+                  <p className="font-medium">{letterFile.name}</p>
                   <p className="text-sm text-muted-foreground mt-1">Click to replace</p>
                 </>
               ) : (
@@ -595,7 +670,7 @@ export default function RecipientApply() {
                 </>
               )}
             </div>
-            {!letterUploaded && (
+            {!letterFile && (
               <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                 <AlertCircle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -642,7 +717,7 @@ export default function RecipientApply() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Reference Letter</dt>
-                  <dd className="font-medium">{letterUploaded ? 'Uploaded' : 'Not uploaded'}</dd>
+                  <dd className="font-medium">{letterFile ? letterFile.name : 'Not uploaded'}</dd>
                 </div>
               </dl>
               {validMilestonesCount > 0 && (
