@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
@@ -192,11 +193,13 @@ export function useCalculatedXP() {
   return totalXP;
 }
 
-// Check if user can apply for device (100 XP threshold)
+// Check if user can apply for device (100 XP threshold) - with realtime updates
 export function useCanApplyForDevice() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  
   const { data: recipientProfile } = useQuery({
-    queryKey: ['recipient_profile', user?.id],
+    queryKey: ['recipient_profile_xp', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
@@ -210,6 +213,34 @@ export function useCanApplyForDevice() {
     },
     enabled: !!user?.id,
   });
+
+  // Set up realtime subscription for XP updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('xp-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'recipient_profiles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Invalidate the query to refetch XP
+          queryClient.invalidateQueries({ queryKey: ['recipient_profile_xp', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['recipient_profile', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['my_recipient_profile'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
   
   const totalXP = recipientProfile?.xp || 0;
   
