@@ -46,6 +46,7 @@ export default function DonorRegister() {
     serial?: string | null;
     video?: string | null;
   }>({});
+  const [serialImeiText, setSerialImeiText] = useState('');
 
   // Validation
   const isDeviceTypeValid = deviceType && (deviceType !== 'other' || otherDeviceType.trim().length > 0);
@@ -116,6 +117,14 @@ export default function DonorRegister() {
     if (!draftDonationId) return;
 
     try {
+      // Update serial/IMEI text if provided
+      if (serialImeiText.trim()) {
+        await supabase
+          .from('donations')
+          .update({ serial_imei_text: serialImeiText.trim() })
+          .eq('id', draftDonationId);
+      }
+
       await submitForVerification.mutateAsync(draftDonationId);
 
       toast({
@@ -316,7 +325,9 @@ export default function DonorRegister() {
               <DeviceMediaUpload
                 donationId={draftDonationId}
                 mediaUrls={mediaUrls}
+                serialImeiText={serialImeiText}
                 onMediaChange={handleMediaChange}
+                onSerialImeiChange={setSerialImeiText}
               />
 
               <div className="flex gap-3">
@@ -383,8 +394,11 @@ export default function DonorRegister() {
                 <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                     <Check className="h-4 w-4" />
-                    <span className="font-medium">4 device photos uploaded</span>
+                    <span className="font-medium">2 device photos uploaded</span>
                   </div>
+                  {serialImeiText && (
+                    <p className="text-sm text-muted-foreground mt-1">Serial/IMEI: {serialImeiText}</p>
+                  )}
                 </div>
 
                 <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">

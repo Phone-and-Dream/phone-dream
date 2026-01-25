@@ -228,6 +228,73 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_donations: {
+        Row: {
+          allocation_method: string
+          amount: number
+          created_at: string
+          currency: string
+          donor_id: string
+          id: string
+          linked_dream_request_id: string | null
+          linked_recipient_id: string | null
+          payment_intent_id: string | null
+          purpose: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_method?: string
+          amount: number
+          created_at?: string
+          currency?: string
+          donor_id: string
+          id?: string
+          linked_dream_request_id?: string | null
+          linked_recipient_id?: string | null
+          payment_intent_id?: string | null
+          purpose?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_method?: string
+          amount?: number
+          created_at?: string
+          currency?: string
+          donor_id?: string
+          id?: string
+          linked_dream_request_id?: string | null
+          linked_recipient_id?: string | null
+          payment_intent_id?: string | null
+          purpose?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_donations_donor_id_fkey"
+            columns: ["donor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_donations_linked_dream_request_id_fkey"
+            columns: ["linked_dream_request_id"]
+            isOneToOne: false
+            referencedRelation: "dream_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_donations_linked_recipient_id_fkey"
+            columns: ["linked_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           certificate_url: string | null
@@ -286,8 +353,11 @@ export type Database = {
           media_serial_url: string | null
           media_video_url: string | null
           needs_refurbishing: boolean
+          pre_selected_recipient_id: string | null
+          recipient_selection_method: string | null
           rejection_reason: string | null
           repair_contribution: number | null
+          serial_imei_text: string | null
           status: Database["public"]["Enums"]["donation_status"] | null
           tracking_number: string | null
           updated_at: string
@@ -313,8 +383,11 @@ export type Database = {
           media_serial_url?: string | null
           media_video_url?: string | null
           needs_refurbishing?: boolean
+          pre_selected_recipient_id?: string | null
+          recipient_selection_method?: string | null
           rejection_reason?: string | null
           repair_contribution?: number | null
+          serial_imei_text?: string | null
           status?: Database["public"]["Enums"]["donation_status"] | null
           tracking_number?: string | null
           updated_at?: string
@@ -340,8 +413,11 @@ export type Database = {
           media_serial_url?: string | null
           media_video_url?: string | null
           needs_refurbishing?: boolean
+          pre_selected_recipient_id?: string | null
+          recipient_selection_method?: string | null
           rejection_reason?: string | null
           repair_contribution?: number | null
+          serial_imei_text?: string | null
           status?: Database["public"]["Enums"]["donation_status"] | null
           tracking_number?: string | null
           updated_at?: string
@@ -355,6 +431,13 @@ export type Database = {
             columns: ["linked_dream_request_id"]
             isOneToOne: false
             referencedRelation: "dream_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "donations_pre_selected_recipient_id_fkey"
+            columns: ["pre_selected_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -624,6 +707,67 @@ export type Database = {
           },
         ]
       }
+      recipient_tasks: {
+        Row: {
+          created_at: string
+          id: string
+          recipient_id: string
+          status: string
+          submission_data: string | null
+          submitted_at: string | null
+          task_id: string
+          verified_at: string | null
+          verified_by: string | null
+          xp_awarded: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipient_id: string
+          status?: string
+          submission_data?: string | null
+          submitted_at?: string | null
+          task_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+          xp_awarded?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          status?: string
+          submission_data?: string | null
+          submitted_at?: string | null
+          task_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          xp_awarded?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipient_tasks_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipient_tasks_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipient_tasks_verified_by_fkey"
+            columns: ["verified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recommendations: {
         Row: {
           id: string
@@ -696,6 +840,54 @@ export type Database = {
           progress?: number
           recipient_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          action_url: string | null
+          cash_reward: number | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          requires_verification: boolean
+          task_type: string
+          title: string
+          updated_at: string
+          verification_type: string | null
+          visibility: string
+          xp_value: number
+        }
+        Insert: {
+          action_url?: string | null
+          cash_reward?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          requires_verification?: boolean
+          task_type?: string
+          title: string
+          updated_at?: string
+          verification_type?: string | null
+          visibility?: string
+          xp_value?: number
+        }
+        Update: {
+          action_url?: string | null
+          cash_reward?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          requires_verification?: boolean
+          task_type?: string
+          title?: string
+          updated_at?: string
+          verification_type?: string | null
+          visibility?: string
+          xp_value?: number
         }
         Relationships: []
       }

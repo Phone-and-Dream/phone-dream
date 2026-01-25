@@ -14,6 +14,7 @@ import { useCreateApplication, useCreateApplicationReference } from '@/hooks/use
 import { useUpdateProfile } from '@/hooks/useProfiles';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { countWords } from '@/lib/sanitize';
 import type { Database } from '@/integrations/supabase/types';
 const steps = [
   { id: 1, title: 'Personal Info' },
@@ -78,11 +79,12 @@ export default function RecipientApply() {
           (creatorType !== 'other' || otherCreatorType.trim())
         );
       case 2:
+        const wordCount = countWords(purpose);
         return !!(
           schoolOrCareer &&
           deviceNeeded &&
           (deviceNeeded !== 'other' || otherDeviceNeeded.trim()) &&
-          purpose.length >= 100
+          wordCount >= 150 && wordCount <= 500
         );
       case 3:
         return validReferencesCount >= 2;
@@ -236,12 +238,12 @@ export default function RecipientApply() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="location" className="flex items-center gap-2">
-                  City/Town *
+                  State *
                   {location.trim() && <Check className="h-4 w-4 text-accent" />}
                 </Label>
                 <Input 
                   id="location" 
-                  placeholder="e.g., Lagos"
+                  placeholder="e.g., Lagos State"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                 />
@@ -373,22 +375,25 @@ export default function RecipientApply() {
             <div className="space-y-2">
               <Label htmlFor="purpose" className="flex items-center gap-2">
                 Tell us your story and why you need this device *
-                {purpose.length >= 100 && <Check className="h-4 w-4 text-accent" />}
+                {countWords(purpose) >= 150 && countWords(purpose) <= 500 && <Check className="h-4 w-4 text-accent" />}
               </Label>
               <Textarea 
                 id="purpose"
-                placeholder="Share your dreams, goals, and how a device would help you achieve them..."
-                className="min-h-[150px]"
+                placeholder="Share your dreams, goals, and how a device would help you achieve them. The more detailed your story, the better your chances of receiving a device..."
+                className="min-h-[200px]"
                 value={purpose}
                 onChange={(e) => setPurpose(e.target.value)}
               />
-              <p className={cn(
-                "text-xs",
-                purpose.length >= 100 ? "text-accent" : "text-muted-foreground"
-              )}>
-                {purpose.length}/100 characters minimum
-                {purpose.length < 100 && ` (${100 - purpose.length} more needed)`}
-              </p>
+              <div className="flex justify-between text-xs">
+                <p className={cn(
+                  countWords(purpose) >= 150 && countWords(purpose) <= 500 ? "text-accent" : "text-muted-foreground"
+                )}>
+                  {countWords(purpose)}/150 words minimum (max 500)
+                  {countWords(purpose) < 150 && ` (${150 - countWords(purpose)} more needed)`}
+                  {countWords(purpose) > 500 && <span className="text-destructive ml-1">({countWords(purpose) - 500} too many)</span>}
+                </p>
+                <p className="text-muted-foreground italic">The more detailed, the better your chances!</p>
+              </div>
             </div>
           </div>
         );

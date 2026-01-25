@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Smartphone, Gift, Heart, Loader2, Check, X } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,11 +57,11 @@ export default function Signup() {
       description: "Please complete your profile.",
     });
 
-    // Navigate to onboarding based on role
+    // Navigate to dashboard - they can start onboarding from there
     if (role === 'donor') {
-      navigate('/donor/register');
+      navigate('/donor/dashboard');
     } else {
-      navigate('/recipient/apply');
+      navigate('/recipient/dashboard');
     }
   };
 
@@ -174,9 +175,8 @@ export default function Signup() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
-                <Input 
+                <PasswordInput 
                   id="password" 
-                  type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -184,7 +184,7 @@ export default function Signup() {
                   className={cn(password && (isPasswordValid ? "border-accent" : "border-destructive"))}
                 />
                 {password && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <span className="absolute right-10 top-1/2 -translate-y-1/2">
                     {isPasswordValid ? <Check className="h-4 w-4 text-accent" /> : <X className="h-4 w-4 text-destructive" />}
                   </span>
                 )}
