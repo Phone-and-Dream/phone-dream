@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink, Pencil, Smartphone, ArrowRight, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -129,9 +130,12 @@ export default function RecipientDashboard() {
           </div>
           <div className="p-6 pt-0 -mt-12">
             <div className="flex flex-col md:flex-row md:items-end gap-4">
-              <div className="w-24 h-24 rounded-2xl border-4 border-card bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary shadow-lg">
-                {profile?.full_name?.charAt(0) || '?'}
-              </div>
+              <Avatar className="w-24 h-24 rounded-2xl border-4 border-card shadow-lg">
+                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'Profile'} className="object-cover" />
+                <AvatarFallback className="rounded-2xl bg-primary/10 text-3xl font-bold text-primary">
+                  {profile?.full_name?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl font-display font-bold">{profile?.full_name || 'Your Name'}</h1>
