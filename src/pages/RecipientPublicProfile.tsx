@@ -271,6 +271,7 @@ export default function RecipientPublicProfile() {
                       date={receivedDonation.delivered_at || receivedDonation.created_at}
                       linkTo="donor"
                       size="md"
+                      network={(receivedDonation.attestation?.[0]?.network as 'avalanche' | 'base') || 'avalanche'}
                     />
                   </div>
                 </div>

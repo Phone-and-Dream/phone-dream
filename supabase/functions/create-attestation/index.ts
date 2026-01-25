@@ -7,13 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Sign Protocol on Base Mainnet
-const SIGN_PROTOCOL_ADDRESS = "0x4e4af2a21ebf62850fD99Eb6253E1eFBb56098cD";
-const BASE_RPC_URL = "https://mainnet.base.org";
+// Avalanche C-Chain Configuration
+const AVALANCHE_RPC_URL = "https://api.avax.network/ext/bc/C/rpc";
+const AVALANCHE_TESTNET_RPC_URL = "https://api.avax-test.network/ext/bc/C/rpc";
 
-// Minimal ABI for Sign Protocol attestation
-const SIGN_PROTOCOL_ABI = [
-  "function attest((uint64 schemaId, uint64 linkedAttestationId, uint64 attestTimestamp, uint64 revokeTimestamp, address attester, uint64 validUntil, uint8 dataLocation, bool revoked, bytes[] recipients, bytes data), string indexingKey, bytes delegateSignature, bytes extraData) external returns (uint64)"
+// ImpactSBT Contract ABI (minimal for minting)
+const IMPACT_SBT_ABI = [
+  "function mintImpactBadge(address donor, address recipient, string donorId, string recipientId, string deviceType, string condition, string donationId, string region) external returns (uint256)",
+  "function totalSupply() external view returns (uint256)"
 ];
 
 interface AttestationRequest {
@@ -23,6 +24,8 @@ interface AttestationRequest {
   device_type: string;
   condition: string;
   region?: string;
+  donor_address?: string;
+  recipient_address?: string;
 }
 
 serve(async (req: Request) => {
@@ -34,17 +37,19 @@ serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const privateKey = Deno.env.get('SIGN_PROTOCOL_PRIVATE_KEY');
+    const privateKey = Deno.env.get('AVALANCHE_PRIVATE_KEY');
+    const contractAddress = Deno.env.get('AVALANCHE_CONTRACT_ADDRESS');
+    const useTestnet = Deno.env.get('AVALANCHE_USE_TESTNET') === 'true';
 
-    if (!privateKey) {
-      // If no private key configured, create a mock attestation for demo
-      const body: AttestationRequest = await req.json();
-      
+    const body: AttestationRequest = await req.json();
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Demo mode if no private key or contract configured
+    if (!privateKey || !contractAddress) {
       // Generate a mock transaction hash for demo purposes
       const mockTxHash = `0x${Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-      const mockAttestationId = `demo_${Date.now()}`;
-
-      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      const mockTokenId = Math.floor(Math.random() * 1000000);
+      const mockAttestationId = `demo_avax_${mockTokenId}`;
 
       // Store the mock attestation
       const { data, error } = await supabase
@@ -54,15 +59,17 @@ serve(async (req: Request) => {
           donor_id: body.donor_id,
           recipient_id: body.recipient_id,
           tx_hash: mockTxHash,
-          network: 'base',
-          schema_id: 'demo_schema',
+          network: 'avalanche',
+          schema_id: 'impact_sbt_v1',
           attestation_id: mockAttestationId,
           metadata: {
             device_type: body.device_type,
             condition: body.condition,
             region: body.region || 'Unknown',
             timestamp: Date.now(),
-            demo_mode: true
+            token_id: mockTokenId,
+            demo_mode: true,
+            contract_address: 'demo_contract'
           }
         })
         .select()
@@ -75,49 +82,64 @@ serve(async (req: Request) => {
           success: true,
           attestation: data,
           demo_mode: true,
-          message: "Demo attestation created. Configure SIGN_PROTOCOL_PRIVATE_KEY for real blockchain attestations."
+          network: 'avalanche',
+          message: "Demo attestation created. Configure AVALANCHE_PRIVATE_KEY and AVALANCHE_CONTRACT_ADDRESS for real SBT minting."
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Real blockchain attestation
-    const body: AttestationRequest = await req.json();
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // Create provider and wallet
-    const provider = new ethers.JsonRpcProvider(BASE_RPC_URL);
+    // Real Avalanche SBT Minting
+    const rpcUrl = useTestnet ? AVALANCHE_TESTNET_RPC_URL : AVALANCHE_RPC_URL;
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
     const wallet = new ethers.Wallet(privateKey, provider);
 
-    // Encode attestation data
-    const attestationData = ethers.AbiCoder.defaultAbiCoder().encode(
-      ['string', 'string', 'string', 'string', 'string', 'uint256'],
-      [
-        body.donor_id,
-        body.recipient_id,
-        body.device_type,
-        body.condition,
-        body.region || 'Unknown',
-        Math.floor(Date.now() / 1000)
-      ]
+    // Connect to the ImpactSBT contract
+    const contract = new ethers.Contract(contractAddress, IMPACT_SBT_ABI, wallet);
+
+    // Use provided addresses or generate placeholder addresses
+    // In production, donors/recipients would have wallet addresses linked to their profiles
+    const donorAddress = body.donor_address || ethers.ZeroAddress;
+    const recipientAddress = body.recipient_address || ethers.ZeroAddress;
+
+    console.log('Minting Impact SBT on Avalanche C-Chain...');
+    console.log('Contract:', contractAddress);
+    console.log('Donor:', donorAddress);
+    console.log('Recipient:', recipientAddress);
+
+    // Call the mintImpactBadge function
+    const tx = await contract.mintImpactBadge(
+      donorAddress,
+      recipientAddress,
+      body.donor_id,
+      body.recipient_id,
+      body.device_type,
+      body.condition,
+      body.donation_id,
+      body.region || 'Unknown'
     );
 
-    // For simplicity, we'll create a hash-based attestation
-    // In production, you'd interact with the actual Sign Protocol contract
-    const attestationHash = ethers.keccak256(attestationData);
-    
-    // Create a signed message as proof of attestation
-    const signature = await wallet.signMessage(ethers.getBytes(attestationHash));
-    
-    // Generate a deterministic "transaction hash" based on the attestation
-    const txHash = ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ['bytes32', 'bytes'],
-        [attestationHash, signature]
-      )
-    );
+    console.log('Transaction sent:', tx.hash);
 
-    const attestationId = `sp_${Date.now()}_${txHash.slice(0, 10)}`;
+    // Wait for transaction confirmation
+    const receipt = await tx.wait();
+    console.log('Transaction confirmed in block:', receipt.blockNumber);
+
+    // Parse the ImpactBadgeMinted event to get tokenId
+    let tokenId = 'unknown';
+    for (const log of receipt.logs) {
+      try {
+        const parsed = contract.interface.parseLog(log);
+        if (parsed && parsed.name === 'ImpactBadgeMinted') {
+          tokenId = parsed.args.tokenId.toString();
+          break;
+        }
+      } catch {
+        // Not our event, continue
+      }
+    }
+
+    const attestationId = `sbt_${tokenId}`;
 
     // Store the attestation
     const { data, error } = await supabase
@@ -126,17 +148,20 @@ serve(async (req: Request) => {
         donation_id: body.donation_id,
         donor_id: body.donor_id,
         recipient_id: body.recipient_id,
-        tx_hash: txHash,
-        network: 'base',
-        schema_id: 'device_donation_v1',
+        tx_hash: tx.hash,
+        network: 'avalanche',
+        schema_id: 'impact_sbt_v1',
         attestation_id: attestationId,
         metadata: {
           device_type: body.device_type,
           condition: body.condition,
           region: body.region || 'Unknown',
           timestamp: Date.now(),
-          attester: wallet.address,
-          signature: signature
+          token_id: tokenId,
+          contract_address: contractAddress,
+          block_number: receipt.blockNumber,
+          minter: wallet.address,
+          testnet: useTestnet
         }
       })
       .select()
@@ -144,22 +169,30 @@ serve(async (req: Request) => {
 
     if (error) throw error;
 
+    const explorerUrl = useTestnet 
+      ? `https://testnet.snowtrace.io/tx/${tx.hash}`
+      : `https://snowtrace.io/tx/${tx.hash}`;
+
     return new Response(
       JSON.stringify({
         success: true,
         attestation: data,
-        explorer_url: `https://basescan.org/tx/${txHash}`
+        network: 'avalanche',
+        testnet: useTestnet,
+        token_id: tokenId,
+        explorer_url: explorerUrl
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Attestation error:', error);
+    console.error('Avalanche SBT minting error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: errorMessage 
+        error: errorMessage,
+        network: 'avalanche'
       }),
       { 
         status: 500, 
