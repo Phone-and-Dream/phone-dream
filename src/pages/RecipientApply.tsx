@@ -1,21 +1,26 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ChevronLeft, ChevronRight, Check, Upload, Plus, Trash2, AlertCircle, Loader2, Lock, Trophy, ArrowRight } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 import { Navbar } from '@/components/layout/Navbar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateApplication, useCreateApplicationReference } from '@/hooks/useApplications';
-import { useUpdateProfile } from '@/hooks/useProfiles';
+import { useUpdateProfile, useMyRecipientProfile } from '@/hooks/useProfiles';
+import { useCanApplyForDevice } from '@/hooks/useRecipientTasks';
+import { useMySkills, useMyProjects, useMyCourses, useMyCareerEvents, useMyRecommendations } from '@/hooks/useRecipientData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { countWords } from '@/lib/sanitize';
 import type { Database } from '@/integrations/supabase/types';
+
+const XP_THRESHOLD = 100;
 const steps = [
   { id: 1, title: 'Personal Info' },
   { id: 2, title: 'Background' },
@@ -37,6 +42,33 @@ export default function RecipientApply() {
   const createApplication = useCreateApplication();
   const createReference = useCreateApplicationReference();
   const updateProfile = useUpdateProfile();
+  
+  // XP threshold check
+  const { canApply, currentXP, progress } = useCanApplyForDevice();
+  const { data: recipientProfile } = useMyRecipientProfile();
+  const { data: skills = [] } = useMySkills();
+  const { data: projects = [] } = useMyProjects();
+  const { data: courses = [] } = useMyCourses();
+  const { data: careerEvents = [] } = useMyCareerEvents();
+  const { data: recommendations = [] } = useMyRecommendations();
+  
+  // Calculate XP including auto-completed profile tasks
+  const calculateTotalXP = () => {
+    let total = currentXP;
+    // Add XP for profile completions (matching task page logic)
+    if (recipientProfile?.bio) total += 10;
+    if (recipientProfile?.tagline) total += 10;
+    if (skills.length > 0) total += 10;
+    if (projects.length > 0) total += 10;
+    if (courses.length > 0) total += 10;
+    if (careerEvents.length > 0) total += 10;
+    if (recommendations.length > 0) total += 20;
+    return total;
+  };
+  
+  const totalXP = calculateTotalXP();
+  const actualProgress = Math.min((totalXP / XP_THRESHOLD) * 100, 100);
+  const canActuallyApply = totalXP >= XP_THRESHOLD;
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -647,87 +679,154 @@ export default function RecipientApply() {
       
       <div className="container py-8 max-w-3xl">
         <BackButton to={user ? "/recipient/dashboard" : "/"} className="mb-4" />
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold mb-2">Apply for a Device</h1>
-          <p className="text-muted-foreground">Tell us about yourself and your dreams</p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={cn(
-                  "flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-colors",
-                  currentStep > step.id 
-                    ? "bg-accent text-accent-foreground" 
-                    : currentStep === step.id 
-                      ? "bg-primary text-primary-foreground" 
-                      : "bg-muted text-muted-foreground"
-                )}>
-                  {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
-                </div>
-                {index < steps.length - 1 && (
-                  <div className={cn(
-                    "hidden sm:block w-12 lg:w-24 h-1 mx-2",
-                    currentStep > step.id ? "bg-accent" : "bg-muted"
-                  )} />
-                )}
+        
+        {/* XP Gate - Show if user doesn't have enough XP */}
+        {!canActuallyApply ? (
+          <div className="space-y-6">
+            <div className="mb-8">
+              <h1 className="text-3xl font-display font-bold mb-2">Apply for a Device</h1>
+              <p className="text-muted-foreground">Complete tasks to unlock your application</p>
+            </div>
+            
+            <div className="glass-card rounded-2xl p-8 text-center">
+              <div className="h-20 w-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6">
+                <Lock className="h-10 w-10 text-muted-foreground" />
               </div>
-            ))}
+              
+              <h2 className="text-2xl font-display font-bold mb-2">Application Locked</h2>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                You need to earn at least {XP_THRESHOLD} XP before you can apply for a device. 
+                Complete tasks to build your profile and show your commitment!
+              </p>
+              
+              {/* XP Progress */}
+              <div className="max-w-sm mx-auto mb-6">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-medium">{totalXP} / {XP_THRESHOLD} XP</span>
+                  <span className="text-muted-foreground">{Math.round(actualProgress)}%</span>
+                </div>
+                <Progress value={actualProgress} className="h-3" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Earn {XP_THRESHOLD - totalXP} more XP to unlock
+                </p>
+              </div>
+              
+              {/* Quick XP Suggestions */}
+              <div className="bg-muted/30 rounded-xl p-4 mb-6 max-w-md mx-auto">
+                <h3 className="font-semibold text-sm mb-3 flex items-center justify-center gap-2">
+                  <Trophy className="h-4 w-4 text-primary" />
+                  Quick ways to earn XP
+                </h3>
+                <ul className="text-sm text-muted-foreground space-y-1.5 text-left">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-primary shrink-0" />
+                    Follow on Twitter (+50 XP)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-primary shrink-0" />
+                    Complete your profile (+10-20 XP each)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-3 w-3 text-primary shrink-0" />
+                    Get a recommendation (+20 XP)
+                  </li>
+                </ul>
+              </div>
+              
+              <Button asChild size="lg">
+                <Link to="/recipient/tasks">
+                  <Trophy className="h-5 w-5 mr-2" />
+                  Go to Tasks Page
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
           </div>
-          <div className="flex justify-between mt-2">
-            {steps.map((step) => (
-              <span key={step.id} className="hidden sm:block text-xs text-muted-foreground">
-                {step.title}
-              </span>
-            ))}
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="mb-8">
+              <h1 className="text-3xl font-display font-bold mb-2">Apply for a Device</h1>
+              <p className="text-muted-foreground">Tell us about yourself and your dreams</p>
+            </div>
 
-        {/* Step Content */}
-        <div className="glass-card rounded-2xl p-6 md:p-8 mb-8">
-          <h2 className="text-xl font-display font-semibold mb-6">
-            {steps.find(s => s.id === currentStep)?.title}
-          </h2>
-          {renderStepContent()}
-        </div>
+            {/* Progress Steps */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                {steps.map((step, index) => (
+                  <div key={step.id} className="flex items-center">
+                    <div className={cn(
+                      "flex items-center justify-center w-10 h-10 rounded-full text-sm font-medium transition-colors",
+                      currentStep > step.id 
+                        ? "bg-accent text-accent-foreground" 
+                        : currentStep === step.id 
+                          ? "bg-primary text-primary-foreground" 
+                          : "bg-muted text-muted-foreground"
+                    )}>
+                      {currentStep > step.id ? <Check className="h-5 w-5" /> : step.id}
+                    </div>
+                    {index < steps.length - 1 && (
+                      <div className={cn(
+                        "hidden sm:block w-12 lg:w-24 h-1 mx-2",
+                        currentStep > step.id ? "bg-accent" : "bg-muted"
+                      )} />
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between mt-2">
+                {steps.map((step) => (
+                  <span key={step.id} className="hidden sm:block text-xs text-muted-foreground">
+                    {step.title}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <Button 
-            variant="outline" 
-            onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-            disabled={currentStep === 1}
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
+            {/* Step Content */}
+            <div className="glass-card rounded-2xl p-6 md:p-8 mb-8">
+              <h2 className="text-xl font-display font-semibold mb-6">
+                {steps.find(s => s.id === currentStep)?.title}
+              </h2>
+              {renderStepContent()}
+            </div>
 
-          {currentStep < steps.length ? (
-            <Button 
-              onClick={() => setCurrentStep(currentStep + 1)}
-              disabled={!isStepValid(currentStep)}
-            >
-              {!isStepValid(currentStep) ? 'Complete required fields' : 'Next'}
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleSubmit}
-              disabled={!isStepValid(5) || isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Submitting...
-                </>
+            {/* Navigation */}
+            <div className="flex items-center justify-between">
+              <Button 
+                variant="outline" 
+                onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                disabled={currentStep === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+
+              {currentStep < steps.length ? (
+                <Button 
+                  onClick={() => setCurrentStep(currentStep + 1)}
+                  disabled={!isStepValid(currentStep)}
+                >
+                  {!isStepValid(currentStep) ? 'Complete required fields' : 'Next'}
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
               ) : (
-                'Submit Application'
+                <Button 
+                  onClick={handleSubmit}
+                  disabled={!isStepValid(5) || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Application'
+                  )}
+                </Button>
               )}
-            </Button>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
