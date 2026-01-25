@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Navbar } from '@/components/layout/Navbar';
 import { DeviceMediaUpload, hasAllRequiredMedia } from '@/components/DeviceMediaUpload';
+import { RecipientSelectionStep } from '@/components/RecipientSelectionStep';
 import { useToast } from '@/hooks/use-toast';
 import { useSubmitForVerification } from '@/hooks/useDeviceVerification';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +18,7 @@ import type { Database } from '@/integrations/supabase/types';
 
 type DeviceCondition = Database['public']['Enums']['device_condition'];
 
-type RegistrationStep = 'details' | 'media' | 'review';
+type RegistrationStep = 'details' | 'media' | 'recipient' | 'review';
 
 export default function DonorRegister() {
   const navigate = useNavigate();
@@ -48,7 +49,10 @@ export default function DonorRegister() {
   }>({});
   const [serialImeiText, setSerialImeiText] = useState('');
 
-  // Validation
+  // Recipient selection
+  const [recipientSelectionMethod, setRecipientSelectionMethod] = useState<'platform' | 'donor_choice'>('platform');
+  const [preSelectedRecipientId, setPreSelectedRecipientId] = useState<string | null>(null);
+  const [linkedDreamRequestId, setLinkedDreamRequestId] = useState<string | null>(null);
   const isDeviceTypeValid = deviceType && (deviceType !== 'other' || otherDeviceType.trim().length > 0);
   const isConditionValid = !!condition;
   const isDetailsValid = isDeviceTypeValid && isConditionValid;
@@ -151,24 +155,55 @@ export default function DonorRegister() {
     }
   };
 
+  const steps: RegistrationStep[] = ['details', 'media', 'recipient', 'review'];
+  
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
-      {(['details', 'media', 'review'] as const).map((s, i) => (
+      {steps.map((s, i) => (
         <div key={s} className="flex items-center">
           <div className={`
             w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors
             ${step === s ? 'bg-primary text-primary-foreground' : 
-              (['details', 'media', 'review'].indexOf(step) > i ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground')}
+              (steps.indexOf(step) > i ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground')}
           `}>
             {i + 1}
           </div>
-          {i < 2 && (
-            <div className={`w-12 h-0.5 ${['details', 'media', 'review'].indexOf(step) > i ? 'bg-primary/50' : 'bg-muted'}`} />
+          {i < steps.length - 1 && (
+            <div className={`w-8 h-0.5 ${steps.indexOf(step) > i ? 'bg-primary/50' : 'bg-muted'}`} />
           )}
         </div>
       ))}
     </div>
   );
+
+  const handleRecipientSelection = (
+    method: 'platform' | 'donor_choice', 
+    recipientId?: string, 
+    dreamRequestId?: string
+  ) => {
+    setRecipientSelectionMethod(method);
+    if (recipientId) setPreSelectedRecipientId(recipientId);
+    if (dreamRequestId) setLinkedDreamRequestId(dreamRequestId);
+    
+    // Update the donation with selection info
+    if (draftDonationId) {
+      supabase
+        .from('donations')
+        .update({
+          recipient_selection_method: method,
+          pre_selected_recipient_id: recipientId || null,
+          linked_dream_request_id: dreamRequestId || null,
+        })
+        .eq('id', draftDonationId)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Failed to update recipient selection:', error);
+          }
+        });
+    }
+    
+    setStep('review');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -340,15 +375,22 @@ export default function DonorRegister() {
                   Back
                 </Button>
                 <Button 
-                  onClick={() => setStep('review')}
+                  onClick={() => setStep('recipient')}
                   className="flex-1"
                   disabled={!isMediaComplete}
                 >
-                  Review Donation
+                  Choose Recipient
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
+          )}
+
+          {step === 'recipient' && draftDonationId && (
+            <RecipientSelectionStep
+              onSelect={handleRecipientSelection}
+              onBack={() => setStep('media')}
+            />
           )}
 
           {step === 'review' && (
@@ -401,10 +443,21 @@ export default function DonorRegister() {
                   )}
                 </div>
 
+                {/* Recipient Selection Summary */}
+                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                  <h3 className="font-medium mb-2">Recipient Selection</h3>
+                  <p className="text-sm">
+                    {recipientSelectionMethod === 'platform' 
+                      ? '✨ A Phone and A Dream will assign a verified recipient based on need and availability.'
+                      : `💜 You've chosen to donate to a specific recipient.`
+                    }
+                  </p>
+                </div>
+
                 <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
                   <p className="text-sm">
                     <strong>Next Steps:</strong> After submission, our team will verify your device photos (usually within 24 hours). 
-                    Once verified, your device will be matched with a recipient in need.
+                    Once verified, your device will be {recipientSelectionMethod === 'platform' ? 'matched with a recipient in need' : 'reserved for your chosen recipient'}.
                   </p>
                 </div>
               </div>
@@ -412,7 +465,7 @@ export default function DonorRegister() {
               <div className="flex gap-3">
                 <Button 
                   variant="outline" 
-                  onClick={() => setStep('media')}
+                  onClick={() => setStep('recipient')}
                   className="flex-1"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />

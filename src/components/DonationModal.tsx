@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Heart, ArrowRight, Check, ExternalLink, DollarSign, Camera, Loader2 } from 'lucide-react';
+import { X, Heart, ArrowRight, Check, ExternalLink, DollarSign, Camera, Loader2, Shield, ChevronDown, ChevronUp, MapPin, GraduationCap } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { useCreateDonation } from '@/hooks/useDonations';
 import { useSubmitForVerification } from '@/hooks/useDeviceVerification';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { sanitizeStory, truncateToWords } from '@/lib/sanitize';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -101,7 +102,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
     try {
       const finalDeviceType = deviceType === 'other' ? otherDeviceType : deviceType;
       
-      // Create donation in draft status
+      // Create donation in draft status - donor has already chosen this recipient
       const { data, error } = await supabase
         .from('donations')
         .insert({
@@ -114,6 +115,8 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
           currency: currency,
           status: 'draft',
           linked_dream_request_id: request?.id || null,
+          recipient_selection_method: 'donor_choice',
+          pre_selected_recipient_id: request?.recipient_id || null,
         })
         .select()
         .single();
@@ -183,8 +186,15 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
   const recipientName = request.recipient?.full_name || 'Anonymous';
   const recipientAvatar = request.recipient?.avatar_url || 'https://via.placeholder.com/64';
   const creatorType = request.recipient_profile?.creator_type || 'Creator';
-  const location = request.recipient?.location || 'Unknown';
+  const recipientLocation = [request.recipient?.location, request.recipient?.country].filter(Boolean).join(', ') || 'Unknown';
   const rank = request.recipient_profile?.rank || 'Bronze';
+  const institution = request.recipient_profile?.institution;
+  const schoolOrCareer = request.recipient_profile?.school_or_career;
+
+  // Sanitize story
+  const sanitizedPurpose = sanitizeStory(request.purpose || '');
+  const { truncated: truncatedStory, isTruncated: hasMoreStory } = truncateToWords(sanitizedPurpose, 50);
+  const [isStoryExpanded, setIsStoryExpanded] = useState(false);
 
   const isMediaComplete = hasAllRequiredMedia(mediaUrls);
   const isDeviceTypeValid = deviceType && (deviceType !== 'other' || otherDeviceType.trim().length > 0);
@@ -214,7 +224,17 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                     <h3 className="font-semibold">{recipientName}</h3>
                     <RankBadge rank={rank} size="sm" />
                   </div>
-                  <p className="text-sm text-muted-foreground">{creatorType} • {location}</p>
+                  <div className="text-sm text-muted-foreground space-y-0.5">
+                    <div className="flex items-center gap-1">
+                      <GraduationCap className="h-3 w-3" />
+                      <span className="capitalize">{schoolOrCareer || creatorType}</span>
+                      {institution && <span>at {institution}</span>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      <span>{recipientLocation}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -227,34 +247,62 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                 )}
               </div>
 
-              {/* Purpose */}
+              {/* Background Story - Sanitized */}
               <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Their Story</p>
-                <p className="text-sm">{request.purpose}</p>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">Background Story</p>
+                <p className="text-sm">
+                  {isStoryExpanded ? sanitizedPurpose : truncatedStory}
+                </p>
+                {hasMoreStory && (
+                  <button 
+                    type="button"
+                    onClick={() => setIsStoryExpanded(!isStoryExpanded)}
+                    className="text-sm text-primary hover:underline mt-1 flex items-center gap-1"
+                  >
+                    {isStoryExpanded ? (
+                      <>Show less <ChevronUp className="h-3 w-3" /></>
+                    ) : (
+                      <>Read more <ChevronDown className="h-3 w-3" /></>
+                    )}
+                  </button>
+                )}
               </div>
 
               {/* Milestones */}
-              <div>
-                <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">What They'll Achieve</p>
-                <ul className="space-y-1">
-                  {getMilestones(request).map((milestone, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <span className="h-5 w-5 rounded-full bg-accent/20 flex items-center justify-center text-xs">
-                        {i + 1}
-                      </span>
-                      {milestone}
-                    </li>
-                  ))}
-                </ul>
+              {getMilestones(request).length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-2">What They'll Achieve</p>
+                  <ul className="space-y-1">
+                    {getMilestones(request).map((milestone, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <span className="h-5 w-5 rounded-full bg-accent/20 flex items-center justify-center text-xs">
+                          {i + 1}
+                        </span>
+                        {milestone}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Safety Notice */}
+              <div className="p-3 bg-muted/50 rounded-lg flex items-start gap-2">
+                <Shield className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  For safety and fairness, personal contact details are not shared. All verification, matching, and delivery are handled by A Phone and A Dream.
+                </p>
               </div>
 
               <div className="flex gap-3">
                 <Button variant="outline" className="flex-1" asChild>
-                  <Link to={`/recipient/profile/${request.recipient_id}`}>View Full Profile</Link>
+                  <Link to={`/recipient/profile/${request.recipient_id}`} target="_blank">
+                    View Full Profile
+                    <ExternalLink className="h-3 w-3 ml-2" />
+                  </Link>
                 </Button>
                 <Button className="flex-1" onClick={() => setStep('form')}>
-                  Proceed to Donate
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <Heart className="h-4 w-4 mr-2" />
+                  Donate to this recipient
                 </Button>
               </div>
             </div>
