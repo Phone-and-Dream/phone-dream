@@ -18,8 +18,24 @@ interface NFTBadgeProps {
   date: string;
   linkTo?: 'donor' | 'recipient';
   size?: 'sm' | 'md' | 'lg';
+  network?: 'avalanche' | 'base';
   className?: string;
 }
+
+const networkConfig = {
+  avalanche: {
+    name: 'Avalanche C-Chain',
+    explorerUrl: 'https://snowtrace.io/tx',
+    color: 'bg-red-500',
+    textColor: 'text-red-500',
+  },
+  base: {
+    name: 'Base Mainnet',
+    explorerUrl: 'https://basescan.org/tx',
+    color: 'bg-blue-500',
+    textColor: 'text-blue-500',
+  },
+};
 
 const deviceIcons: Record<string, string> = {
   'macbook': '💻',
@@ -55,8 +71,10 @@ export function NFTBadge({
   date,
   linkTo = 'recipient',
   size = 'md',
+  network = 'avalanche',
   className,
 }: NFTBadgeProps) {
+  const networkInfo = networkConfig[network];
   const sizeClasses = {
     sm: 'w-36 text-[9px]',
     md: 'w-48 text-[10px]',
@@ -149,7 +167,7 @@ export function NFTBadge({
           <div className="bg-muted/30 py-3 px-3 text-center space-y-1">
             <p className="text-muted-foreground">{formatDate(date)}</p>
             <a
-              href={`https://basescan.org/tx/${txHash}`}
+              href={`${networkInfo.explorerUrl}/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-primary hover:underline font-mono"
@@ -159,8 +177,8 @@ export function NFTBadge({
               <ExternalLink className="h-2.5 w-2.5" />
             </a>
             <div className="flex items-center justify-center gap-1 text-muted-foreground">
-              <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
-              <span>Base Mainnet</span>
+              <span className={cn("inline-block w-2 h-2 rounded-full", networkInfo.color)} />
+              <span>{networkInfo.name}</span>
             </div>
           </div>
         </div>
@@ -185,8 +203,8 @@ export function NFTBadge({
           <div className="pt-1 border-t border-border mt-1">
             <p><span className="text-muted-foreground">From:</span> {donorName}</p>
             <p><span className="text-muted-foreground">To:</span> {recipientName}</p>
-            <p><span className="text-muted-foreground">Device:</span> {deviceType} ({condition})</p>
-            <p><span className="text-muted-foreground">Network:</span> Base Mainnet</p>
+          <p><span className="text-muted-foreground">Device:</span> {deviceType} ({condition})</p>
+            <p><span className="text-muted-foreground">Network:</span> {networkInfo.name}</p>
           </div>
           <p className="text-xs text-primary">Click to view {linkTo === 'donor' ? 'donor' : 'recipient'} profile</p>
         </div>

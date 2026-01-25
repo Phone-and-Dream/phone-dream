@@ -224,6 +224,7 @@ export default function DonorPublicProfile() {
                       date={donation.delivered_at || donation.created_at}
                       linkTo="recipient"
                       size="sm"
+                      network={(donation.attestation?.[0]?.network as 'avalanche' | 'base') || 'avalanche'}
                     />
                   ))}
                 </div>
