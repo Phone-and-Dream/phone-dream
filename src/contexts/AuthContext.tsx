@@ -99,26 +99,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         // Update the profile with full name
-        await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
           .update({ full_name: fullName })
           .eq('id', data.user.id);
+        
+        if (profileError) console.error('Profile update error:', profileError);
 
         // Insert user role
-        await supabase
+        const { error: roleError } = await supabase
           .from('user_roles')
           .insert({ user_id: data.user.id, role });
+        
+        if (roleError) console.error('Role insert error:', roleError);
 
         // Create role-specific profile
         if (role === 'donor') {
-          await supabase
+          const { error: donorError } = await supabase
             .from('donor_profiles')
             .insert({ user_id: data.user.id });
+          if (donorError) console.error('Donor profile error:', donorError);
         } else {
-          await supabase
+          const { error: recipientError } = await supabase
             .from('recipient_profiles')
             .insert({ user_id: data.user.id });
+          if (recipientError) console.error('Recipient profile error:', recipientError);
         }
+
+        // CRITICAL: Manually update local role state BEFORE returning
+        // This prevents the race condition where navigation happens before roles are loaded
+        setRoles([role]);
+        setRolesLoaded(true);
       }
 
       return { error: null };
