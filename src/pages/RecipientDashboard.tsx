@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink, Pencil } from 'lucide-react';
+import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink, Pencil, Smartphone, ArrowRight, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RankBadge } from '@/components/ui/rank-badge';
@@ -26,6 +26,8 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyProfile, useMyRecipientProfile } from '@/hooks/useProfiles';
 import { useMySkills, useMyProjects, useMyCareerEvents, useMyRecommendations, useMyJourneyEvents, useXPRules, useMyCourses } from '@/hooks/useRecipientData';
+import { useCanApplyForDevice } from '@/hooks/useRecipientTasks';
+import { Progress } from '@/components/ui/progress';
 import { useReceivedDonations } from '@/hooks/useDonations';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -48,6 +50,7 @@ export default function RecipientDashboard() {
   const { data: journeyEvents = [] } = useMyJourneyEvents();
   const { data: xpRules = [] } = useXPRules();
   const { data: receivedDonations = [] } = useReceivedDonations();
+  const { canApply, currentXP, requiredXP, progress } = useCanApplyForDevice();
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteSuccess, setShowInviteSuccess] = useState(false);
@@ -112,6 +115,12 @@ export default function RecipientDashboard() {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit Profile
               </Button>
+              <Button size="sm" variant="secondary" asChild>
+                <Link to={`/recipient/profile/${user?.id}`} target="_blank">
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Public Profile
+                </Link>
+              </Button>
               <Button size="sm" variant="secondary" onClick={copyProfileLink}>
                 <Copy className="h-4 w-4 mr-2" />
                 Copy Public Link
@@ -147,6 +156,38 @@ export default function RecipientDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Apply for Device CTA */}
+        {!deviceReceived && (
+          <div className="glass-card rounded-2xl p-6 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Smartphone className="h-7 w-7 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-lg">Apply for a Device</h3>
+                <p className="text-sm text-muted-foreground">
+                  {canApply 
+                    ? "🎉 You've earned enough XP! You can now apply for a device." 
+                    : `Earn ${requiredXP - currentXP} more XP to unlock device applications`}
+                </p>
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                    <span>{currentXP} XP earned</span>
+                    <span>{requiredXP} XP required</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                </div>
+              </div>
+              <Button asChild className={canApply ? 'bg-accent hover:bg-accent/90' : ''}>
+                <Link to={canApply ? "/recipient/apply" : "/recipient/tasks"}>
+                  {canApply ? "Apply Now" : "Earn XP"}
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

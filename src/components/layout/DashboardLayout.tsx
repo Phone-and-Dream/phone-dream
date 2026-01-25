@@ -12,8 +12,10 @@ import {
   BarChart3,
   Trophy,
   ChevronLeft,
-  ClipboardList
+  ClipboardList,
+  User
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -47,7 +49,18 @@ const adminLinks = [
 
 export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const location = useLocation();
-  const links = role === 'recipient' ? recipientLinks : role === 'donor' ? donorLinks : adminLinks;
+  const { user } = useAuth();
+  
+  // Build recipient links dynamically to include user ID for public profile
+  const dynamicRecipientLinks = [
+    { name: 'My Portfolio', href: '/recipient/dashboard', icon: LayoutDashboard },
+    { name: 'Earn XP', href: '/recipient/tasks', icon: Trophy },
+    { name: 'Public Profile', href: user?.id ? `/recipient/profile/${user.id}` : '/recipient/dashboard', icon: User },
+    { name: 'Dream Board', href: '/dream-board', icon: Heart },
+    { name: 'Settings', href: '/recipient/settings', icon: Settings },
+  ];
+  
+  const links = role === 'recipient' ? dynamicRecipientLinks : role === 'donor' ? donorLinks : adminLinks;
 
   const roleLabels = {
     recipient: 'Recipient Portal',
