@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Users, Globe, ExternalLink, Copy, Share2, Loader2, Pencil } from 'lucide-react';
+import { Gift, Users, Globe, ExternalLink, Copy, Share2, Loader2, Pencil, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatCard } from '@/components/ui/stat-card';
@@ -86,8 +86,11 @@ export default function DonorDashboard() {
                   View Public Profile
                 </Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link to="/donor/cash-donate"><DollarSign className="h-4 w-4 mr-2" /> Donate Cash</Link>
+              </Button>
               <Button asChild>
-                <Link to="/donor/register"><Gift className="h-4 w-4 mr-2" /> Donate Another Device</Link>
+                <Link to="/donor/register"><Gift className="h-4 w-4 mr-2" /> Donate Device</Link>
               </Button>
             </div>
           </div>

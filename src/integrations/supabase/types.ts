@@ -106,6 +106,7 @@ export type Database = {
           admin_notes: string | null
           device_needed: string
           id: string
+          milestones: string[] | null
           purpose: string
           reference_letter_url: string | null
           reviewed_at: string | null
@@ -119,6 +120,7 @@ export type Database = {
           admin_notes?: string | null
           device_needed: string
           id?: string
+          milestones?: string[] | null
           purpose: string
           reference_letter_url?: string | null
           reviewed_at?: string | null
@@ -132,6 +134,7 @@ export type Database = {
           admin_notes?: string | null
           device_needed?: string
           id?: string
+          milestones?: string[] | null
           purpose?: string
           reference_letter_url?: string | null
           reviewed_at?: string | null
