@@ -194,11 +194,24 @@ export function useCalculatedXP() {
 
 // Check if user can apply for device (100 XP threshold)
 export function useCanApplyForDevice() {
-  const { data: recipientTasks = [] } = useMyRecipientTasks();
+  const { user } = useAuth();
+  const { data: recipientProfile } = useQuery({
+    queryKey: ['recipient_profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('recipient_profiles')
+        .select('xp')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   
-  const totalXP = recipientTasks
-    .filter(rt => rt.status === 'completed')
-    .reduce((sum, rt) => sum + (rt.xp_awarded || 0), 0);
+  const totalXP = recipientProfile?.xp || 0;
   
   return {
     canApply: totalXP >= 100,
