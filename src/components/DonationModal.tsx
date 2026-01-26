@@ -388,21 +388,32 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
 
       case 'cash':
         return (
-          <CashDonationFlow 
-            preSelectedRecipient={{
-              id: request.recipient_id,
-              name: recipientName,
-              avatar_url: recipientAvatar
-            }}
-            preSelectedDream={{
-              id: request.id,
-              device_needed: request.device_needed,
-              purpose: request.purpose,
-              recipient_id: request.recipient_id,
-              recipient_name: recipientName
-            }}
-            onClose={handleClose}
-          />
+          <div className="space-y-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setStep('choice')}
+              className="text-muted-foreground hover:text-foreground -ml-2"
+            >
+              <ArrowRight className="h-4 w-4 mr-1 rotate-180" />
+              Back to donation options
+            </Button>
+            <CashDonationFlow 
+              preSelectedRecipient={{
+                id: request.recipient_id,
+                name: recipientName,
+                avatar_url: recipientAvatar
+              }}
+              preSelectedDream={{
+                id: request.id,
+                device_needed: request.device_needed,
+                purpose: request.purpose,
+                recipient_id: request.recipient_id,
+                recipient_name: recipientName
+              }}
+              onClose={handleClose}
+            />
+          </div>
         );
 
       case 'form':
