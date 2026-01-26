@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { X, Heart, ArrowRight, Check, ExternalLink, DollarSign, Camera, Loader2, Shield, ChevronDown, ChevronUp, MapPin, GraduationCap } from 'lucide-react';
+import { X, Heart, ArrowRight, Check, ExternalLink, DollarSign, Camera, Loader2, Shield, ChevronDown, ChevronUp, MapPin, GraduationCap, Gift } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { NFTBadge } from '@/components/NFTBadge';
 import { DeviceMediaUpload, hasAllRequiredMedia } from '@/components/DeviceMediaUpload';
+import { CashDonationFlow } from '@/components/CashDonationFlow';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateDonation } from '@/hooks/useDonations';
 import { useSubmitForVerification } from '@/hooks/useDeviceVerification';
@@ -29,7 +31,7 @@ interface DonationModalProps {
   onClose: () => void;
 }
 
-type DonationStep = 'overview' | 'form' | 'media' | 'confirm' | 'success';
+type DonationStep = 'overview' | 'choice' | 'form' | 'media' | 'confirm' | 'success' | 'cash';
 
 export function DonationModal({ request, isOpen, onClose }: DonationModalProps) {
   const navigate = useNavigate();
@@ -301,13 +303,106 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
                     <ExternalLink className="h-3 w-3 ml-2" />
                   </Link>
                 </Button>
-                <Button className="flex-1" onClick={() => setStep('form')}>
+                <Button className="flex-1" onClick={() => setStep('choice')}>
                   <Heart className="h-4 w-4 mr-2" />
                   Donate to this recipient
                 </Button>
               </div>
             </div>
           </>
+        );
+
+      case 'choice':
+        return (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Heart className="h-5 w-5 text-primary" />
+                How would you like to support {recipientName}?
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Device Donation Card */}
+                <Card 
+                  className="cursor-pointer transition-all hover:border-primary hover:shadow-md group"
+                  onClick={() => setStep('form')}
+                >
+                  <CardContent className="pt-6 text-center">
+                    <div className="h-14 w-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                      <Gift className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Donate a Device</h3>
+                    <ul className="text-sm text-muted-foreground space-y-1 text-left">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-primary" />
+                        Give a laptop, phone, or tablet
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-primary" />
+                        Direct impact on recipient
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-primary" />
+                        Earn an Impact SBT badge
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+
+                {/* Cash Donation Card */}
+                <Card 
+                  className="cursor-pointer transition-all hover:border-primary hover:shadow-md group"
+                  onClick={() => setStep('cash')}
+                >
+                  <CardContent className="pt-6 text-center">
+                    <div className="h-14 w-14 mx-auto rounded-2xl bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                      <DollarSign className="h-7 w-7 text-green-600" />
+                    </div>
+                    <h3 className="font-semibold text-lg mb-2">Donate Cash</h3>
+                    <ul className="text-sm text-muted-foreground space-y-1 text-left">
+                      <li className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        Flexible amounts from $5
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        Fund repairs or shipping
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-3 w-3 text-green-600" />
+                        Quick and easy process
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Button variant="outline" className="w-full" onClick={() => setStep('overview')}>
+                Back to overview
+              </Button>
+            </div>
+          </>
+        );
+
+      case 'cash':
+        return (
+          <CashDonationFlow 
+            preSelectedRecipient={{
+              id: request.recipient_id,
+              name: recipientName,
+              avatar_url: recipientAvatar
+            }}
+            preSelectedDream={{
+              id: request.id,
+              device_needed: request.device_needed,
+              purpose: request.purpose,
+              recipient_id: request.recipient_id,
+              recipient_name: recipientName
+            }}
+            onClose={handleClose}
+          />
         );
 
       case 'form':
