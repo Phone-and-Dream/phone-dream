@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Smartphone, Gift, Heart, Loader2, Check, X } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
@@ -14,12 +14,13 @@ type Role = 'donor' | 'recipient';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp, user, rolesLoaded, isDonor, isRecipient } = useAuth();
   const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   // Validation helpers
   const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -27,6 +28,17 @@ export default function Signup() {
   const isEmailValid = isValidEmail(email);
   const isPasswordValid = password.length >= 6;
   const isFormValid = role && isNameValid && isEmailValid && isPasswordValid;
+
+  // Wait for roles to load after successful signup, then navigate
+  useEffect(() => {
+    if (signupSuccess && user && rolesLoaded) {
+      if (isDonor) {
+        navigate('/donor/dashboard', { replace: true });
+      } else if (isRecipient) {
+        navigate('/recipient/dashboard', { replace: true });
+      }
+    }
+  }, [signupSuccess, user, rolesLoaded, isDonor, isRecipient, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,12 +69,8 @@ export default function Signup() {
       description: "Please complete your profile.",
     });
 
-    // Navigate to dashboard - they can start onboarding from there
-    if (role === 'donor') {
-      navigate('/donor/dashboard');
-    } else {
-      navigate('/recipient/dashboard');
-    }
+    // Set flag to trigger navigation after roles load
+    setSignupSuccess(true);
   };
 
   return (

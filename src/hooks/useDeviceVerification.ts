@@ -219,9 +219,12 @@ export function useSubmitForVerification() {
         .eq('id', donationId)
         .in('status', ['draft', 'verification_rejected'])
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) {
+        throw new Error('Unable to submit - donation may have already been submitted or is in an invalid state.');
+      }
       return data;
     },
     onSuccess: () => {

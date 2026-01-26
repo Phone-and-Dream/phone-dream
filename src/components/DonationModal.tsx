@@ -46,6 +46,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
   const [repairContribution, setRepairContribution] = useState('');
   const [donorName, setDonorName] = useState('');
   const [donorEmail, setDonorEmail] = useState('');
+  const [isStoryExpanded, setIsStoryExpanded] = useState(false);
   
   // Draft donation state for media upload
   const [draftDonationId, setDraftDonationId] = useState<string | null>(null);
@@ -195,7 +196,6 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
   // Sanitize story
   const sanitizedPurpose = sanitizeStory(request.purpose || '');
   const { truncated: truncatedStory, isTruncated: hasMoreStory } = truncateToWords(sanitizedPurpose, 50);
-  const [isStoryExpanded, setIsStoryExpanded] = useState(false);
 
   const isMediaComplete = hasAllRequiredMedia(mediaUrls);
   const isDeviceTypeValid = deviceType && (deviceType !== 'other' || otherDeviceType.trim().length > 0);
