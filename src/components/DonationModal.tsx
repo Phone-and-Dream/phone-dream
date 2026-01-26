@@ -509,7 +509,7 @@ export function DonationModal({ request, isOpen, onClose }: DonationModalProps) 
               )}
 
               <div className="flex gap-3 pt-4">
-                <Button variant="outline" onClick={() => setStep('overview')}>Back</Button>
+                <Button variant="outline" onClick={() => setStep('choice')}>Back</Button>
                 <Button 
                   className="flex-1" 
                   onClick={handleProceedToMedia}
