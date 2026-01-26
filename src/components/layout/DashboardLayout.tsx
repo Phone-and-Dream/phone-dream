@@ -33,7 +33,7 @@ const recipientLinks = [
 
 const donorLinks = [
   { name: 'Dashboard', href: '/donor/dashboard', icon: LayoutDashboard },
-  { name: 'Donate Device', href: '/donor/register', icon: Gift },
+  { name: 'Donate', href: '/donor/donate', icon: Gift },
   { name: 'Dream Board', href: '/dream-board', icon: Heart },
   { name: 'Settings', href: '/donor/settings', icon: Settings },
 ];

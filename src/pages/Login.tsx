@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Smartphone, Eye, EyeOff, Loader2, Gift, Star } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
@@ -13,12 +13,35 @@ type LoginRole = 'donor' | 'recipient';
 
 export default function Login() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, user, rolesLoaded, isDonor, isRecipient, isAdmin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState<LoginRole>('recipient');
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // Wait for roles to load after successful login, then navigate
+  useEffect(() => {
+    if (loginSuccess && user && rolesLoaded) {
+      if (isAdmin) {
+        navigate('/admin', { replace: true });
+      } else if (isDonor && isRecipient) {
+        navigate('/select-role', { replace: true });
+      } else if (isDonor) {
+        navigate('/donor/dashboard', { replace: true });
+      } else if (isRecipient) {
+        navigate('/recipient/dashboard', { replace: true });
+      } else {
+        // User has no roles, navigate based on selection
+        if (selectedRole === 'donor') {
+          navigate('/donor/dashboard', { replace: true });
+        } else {
+          navigate('/recipient/dashboard', { replace: true });
+        }
+      }
+    }
+  }, [loginSuccess, user, rolesLoaded, isDonor, isRecipient, isAdmin, selectedRole, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,12 +72,8 @@ export default function Login() {
       description: "You've successfully logged in.",
     });
 
-    // Navigate based on selected role
-    if (selectedRole === 'donor') {
-      navigate('/donor/dashboard');
-    } else {
-      navigate('/recipient/dashboard');
-    }
+    // Set flag to trigger navigation after roles load
+    setLoginSuccess(true);
   };
 
   return (

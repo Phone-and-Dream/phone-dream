@@ -120,7 +120,7 @@ export default function DonorDashboard() {
                   Your unused device could change someone's life. Donate your first device and help a creator achieve their dreams.
                 </p>
                 <Button asChild size="lg">
-                  <Link to="/donor/register">
+                  <Link to="/donor/donate">
                     <Gift className="h-5 w-5 mr-2" />
                     Donate Your First Device
                   </Link>

@@ -26,6 +26,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import DonorSettings from "./pages/DonorSettings";
 import RecipientSettings from "./pages/RecipientSettings";
+import DonorDonateChoice from "./pages/DonorDonateChoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
+            <Route path="/donor/donate" element={<DonorDonateChoice />} />
             <Route path="/donor/register" element={<DonorRegister />} />
             <Route path="/donor/dashboard" element={
               <ProtectedRoute requiredRole="donor">
