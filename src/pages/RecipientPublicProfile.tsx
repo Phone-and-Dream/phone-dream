@@ -20,7 +20,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePublicRecipientProfile } from '@/hooks/useProfiles';
-import { useSkills, useCourses, useProjects, useJourneyEvents } from '@/hooks/useRecipientData';
+import { useSkills, useCourses, useProjects, useJourneyEvents, useEmploymentHistory, useAwards } from '@/hooks/useRecipientData';
 import { useRecipientReceivedDonation } from '@/hooks/useDonations';
 
 // Helper to update or create meta tags dynamically
@@ -55,6 +55,8 @@ export default function RecipientPublicProfile() {
   const { data: projects } = useProjects(id);
   const { data: journeyEvents } = useJourneyEvents(id);
   const { data: receivedDonation } = useRecipientReceivedDonation(id);
+  const { data: employmentHistory } = useEmploymentHistory(id);
+  const { data: awards } = useAwards(id);
   
   const profile = recipientData?.profile;
   const profileUrl = `${window.location.origin}/recipient/profile/${id}`;
@@ -376,8 +378,70 @@ export default function RecipientPublicProfile() {
               )}
             </div>
 
+            {/* Employment History */}
+            {employmentHistory && employmentHistory.length > 0 && (
+              <div>
+                <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
+                  <Briefcase className="h-5 w-5" /> Work Experience
+                </h2>
+                <div className="glass-card rounded-xl p-4 space-y-4">
+                  {employmentHistory.map((job) => (
+                    <div key={job.id} className="border-b border-border last:border-0 pb-4 last:pb-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold">{job.job_title}</h3>
+                          <p className="text-sm text-muted-foreground">{job.company_name}</p>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(job.start_date), 'MMM yyyy')} - {job.is_current ? 'Present' : job.end_date ? format(new Date(job.end_date), 'MMM yyyy') : 'N/A'}
+                        </span>
+                      </div>
+                      {job.description && (
+                        <p className="text-sm text-muted-foreground mt-2">{job.description}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Awards */}
+            {awards && awards.length > 0 && (
+              <div>
+                <h2 className="text-xl font-display font-semibold mb-4 flex items-center gap-2">
+                  <Award className="h-5 w-5" /> Awards & Recognition
+                </h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {awards.map((award) => (
+                    <div key={award.id} className="glass-card rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Award className="h-5 w-5 text-accent" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold truncate">{award.title}</h3>
+                          {award.issuer && <p className="text-sm text-muted-foreground">{award.issuer}</p>}
+                          {award.date_received && (
+                            <p className="text-xs text-muted-foreground mt-1">{format(new Date(award.date_received), 'MMM yyyy')}</p>
+                          )}
+                          {award.description && (
+                            <p className="text-sm text-muted-foreground mt-2">{award.description}</p>
+                          )}
+                          {award.url && (
+                            <a href={award.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1 mt-2">
+                              <ExternalLink className="h-3 w-3" /> View
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Empty State for no content */}
-            {(!projects || projects.length === 0) && (!skills || skills.length === 0) && (!courses || courses.length === 0) && (
+            {(!projects || projects.length === 0) && (!skills || skills.length === 0) && (!courses || courses.length === 0) && (!employmentHistory || employmentHistory.length === 0) && (!awards || awards.length === 0) && (
               <div className="text-center py-12 glass-card rounded-2xl">
                 <Sparkles className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">Journey Just Beginning</h3>
