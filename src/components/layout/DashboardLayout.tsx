@@ -13,7 +13,8 @@ import {
   Trophy,
   ChevronLeft,
   ClipboardList,
-  User
+  User,
+  Crown
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const dynamicRecipientLinks = [
     { name: 'My Portfolio', href: '/recipient/dashboard', icon: LayoutDashboard },
     { name: 'Earn XP', href: '/recipient/tasks', icon: Trophy },
+    { name: 'Leaderboard', href: '/leaderboard', icon: Crown },
     { name: 'Public Profile', href: user?.id ? `/recipient/profile/${user.id}` : '/recipient/dashboard', icon: User },
     { name: 'Dream Board', href: '/dream-board', icon: Heart },
     { name: 'Settings', href: '/recipient/settings', icon: Settings },
