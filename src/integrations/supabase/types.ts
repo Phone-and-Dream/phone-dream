@@ -192,6 +192,50 @@ export type Database = {
           },
         ]
       }
+      awards: {
+        Row: {
+          created_at: string | null
+          date_received: string | null
+          description: string | null
+          id: string
+          issuer: string | null
+          recipient_id: string
+          title: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date_received?: string | null
+          description?: string | null
+          id?: string
+          issuer?: string | null
+          recipient_id: string
+          title: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date_received?: string | null
+          description?: string | null
+          id?: string
+          issuer?: string | null
+          recipient_id?: string
+          title?: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "awards_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       career_events: {
         Row: {
           category: Database["public"]["Enums"]["career_event_category"]
@@ -531,6 +575,53 @@ export type Database = {
           },
         ]
       }
+      employment_history: {
+        Row: {
+          company_name: string
+          created_at: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          is_current: boolean | null
+          job_title: string
+          recipient_id: string
+          start_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean | null
+          job_title: string
+          recipient_id: string
+          start_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          is_current?: boolean | null
+          job_title?: string
+          recipient_id?: string
+          start_date?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employment_history_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       journey_events: {
         Row: {
           created_at: string
@@ -648,6 +739,7 @@ export type Database = {
       recipient_profiles: {
         Row: {
           bio: string | null
+          career: string | null
           created_at: string
           creator_type: Database["public"]["Enums"]["creator_type"] | null
           device_received_id: string | null
@@ -666,6 +758,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          career?: string | null
           created_at?: string
           creator_type?: Database["public"]["Enums"]["creator_type"] | null
           device_received_id?: string | null
@@ -684,6 +777,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          career?: string | null
           created_at?: string
           creator_type?: Database["public"]["Enums"]["creator_type"] | null
           device_received_id?: string | null
