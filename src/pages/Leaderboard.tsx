@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trophy, Medal, TrendingUp, Filter, MapPin, Crown, Loader2 } from 'lucide-react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { BackButton } from '@/components/ui/back-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { useLeaderboard } from '@/hooks/useProfiles';
@@ -80,32 +78,27 @@ export default function Leaderboard() {
   const remaining = sortedRecipients.slice(3);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <main className="flex-1">
+    <DashboardLayout role="recipient">
+      <div className="space-y-6">
         {/* Hero Section */}
-        <section className="warm-gradient py-12 border-b border-border">
-          <div className="container">
-            <BackButton className="mb-4" />
-            <div className="max-w-3xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-                <Trophy className="h-4 w-4" />
-                Top Dreamers
-              </div>
-              <h1 className="text-3xl md:text-4xl font-display font-bold mb-4">
-                XP Leaderboard
-              </h1>
-              <p className="text-muted-foreground">
-                Celebrating the most active and impactful recipients in our community
-              </p>
+        <section className="warm-gradient py-8 -mx-4 lg:-mx-6 -mt-4 lg:-mt-6 px-4 lg:px-6 border-b border-border">
+          <div className="max-w-3xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+              <Trophy className="h-4 w-4" />
+              Top Dreamers
             </div>
+            <h1 className="text-3xl md:text-4xl font-display font-bold mb-4">
+              XP Leaderboard
+            </h1>
+            <p className="text-muted-foreground">
+              Celebrating the most active and impactful recipients in our community
+            </p>
           </div>
         </section>
 
         {/* Filters */}
-        <section className="py-6 bg-card border-b border-border">
-          <div className="container">
+        <section className="py-4 glass-card rounded-xl">
+          <div className="px-4">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Filter className="h-4 w-4" />
@@ -156,8 +149,8 @@ export default function Leaderboard() {
         </section>
 
         {/* Content */}
-        <section className="py-12">
-          <div className="container">
+        <section className="py-6">
+          <div>
             {isLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -288,9 +281,7 @@ export default function Leaderboard() {
             )}
           </div>
         </section>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
