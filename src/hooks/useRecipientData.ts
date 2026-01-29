@@ -490,3 +490,191 @@ export function useMyXPTransactions() {
     enabled: !!user?.id,
   });
 }
+
+// Employment History
+export function useEmploymentHistory(recipientId?: string) {
+  return useQuery({
+    queryKey: ['employment_history', recipientId],
+    queryFn: async () => {
+      if (!recipientId) return [];
+      const { data, error } = await supabase
+        .from('employment_history')
+        .select('*')
+        .eq('recipient_id', recipientId)
+        .order('start_date', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!recipientId,
+  });
+}
+
+export function useMyEmploymentHistory() {
+  const { user } = useAuth();
+  return useEmploymentHistory(user?.id);
+}
+
+export function useCreateEmployment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (employment: { company_name: string; job_title: string; start_date: string; end_date?: string | null; is_current?: boolean; description?: string | null }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('employment_history')
+        .insert({ ...employment, recipient_id: user.id })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment_history', user?.id] });
+    },
+  });
+}
+
+export function useUpdateEmployment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id, ...employment }: { id: string } & Partial<{ company_name: string; job_title: string; start_date: string; end_date?: string | null; is_current?: boolean; description?: string | null }>) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('employment_history')
+        .update(employment)
+        .eq('id', id)
+        .eq('recipient_id', user.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment_history', user?.id] });
+    },
+  });
+}
+
+export function useDeleteEmployment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { error } = await supabase
+        .from('employment_history')
+        .delete()
+        .eq('id', id)
+        .eq('recipient_id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employment_history', user?.id] });
+    },
+  });
+}
+
+// Awards
+export function useAwards(recipientId?: string) {
+  return useQuery({
+    queryKey: ['awards', recipientId],
+    queryFn: async () => {
+      if (!recipientId) return [];
+      const { data, error } = await supabase
+        .from('awards')
+        .select('*')
+        .eq('recipient_id', recipientId)
+        .order('date_received', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!recipientId,
+  });
+}
+
+export function useMyAwards() {
+  const { user } = useAuth();
+  return useAwards(user?.id);
+}
+
+export function useCreateAward() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (award: { title: string; issuer?: string | null; date_received?: string | null; description?: string | null; url?: string | null }) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('awards')
+        .insert({ ...award, recipient_id: user.id })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['awards', user?.id] });
+    },
+  });
+}
+
+export function useUpdateAward() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id, ...award }: { id: string } & Partial<{ title: string; issuer?: string | null; date_received?: string | null; description?: string | null; url?: string | null }>) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { data, error } = await supabase
+        .from('awards')
+        .update(award)
+        .eq('id', id)
+        .eq('recipient_id', user.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['awards', user?.id] });
+    },
+  });
+}
+
+export function useDeleteAward() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const { error } = await supabase
+        .from('awards')
+        .delete()
+        .eq('id', id)
+        .eq('recipient_id', user.id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['awards', user?.id] });
+    },
+  });
+}

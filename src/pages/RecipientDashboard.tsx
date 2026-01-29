@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink, Pencil, Smartphone, ArrowRight, Eye } from 'lucide-react';
+import { Copy, CheckCircle, Calendar, MapPin, Award, Briefcase, BookOpen, FolderOpen, Users, Sparkles, Star, Trophy, Zap, TrendingUp, Plus, Send, Loader2, ExternalLink, Pencil, Smartphone, ArrowRight, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { RankBadge } from '@/components/ui/rank-badge';
@@ -19,14 +19,19 @@ import { EditCourseModal } from '@/components/EditCourseModal';
 import { EditProjectModal } from '@/components/EditProjectModal';
 import { EditCareerEventModal } from '@/components/EditCareerEventModal';
 import { EditRecipientProfileModal } from '@/components/EditRecipientProfileModal';
-import { cn } from '@/lib/utils';
+import { AddEmploymentModal } from '@/components/AddEmploymentModal';
+import { EditEmploymentModal } from '@/components/EditEmploymentModal';
+import { AddAwardModal } from '@/components/AddAwardModal';
+import { EditAwardModal } from '@/components/EditAwardModal';
+import { cn, formatActionName } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyProfile, useMyRecipientProfile } from '@/hooks/useProfiles';
-import { useMySkills, useMyProjects, useMyCareerEvents, useMyRecommendations, useMyJourneyEvents, useXPRules, useMyCourses } from '@/hooks/useRecipientData';
+import { useMySkills, useMyProjects, useMyCareerEvents, useMyRecommendations, useMyJourneyEvents, useXPRules, useMyCourses, useMyEmploymentHistory, useMyAwards } from '@/hooks/useRecipientData';
 import { useCanApplyForDevice } from '@/hooks/useRecipientTasks';
 import { Progress } from '@/components/ui/progress';
 import { useReceivedDonations } from '@/hooks/useDonations';
@@ -38,6 +43,25 @@ type Skill = Database['public']['Tables']['skills']['Row'];
 type Course = Database['public']['Tables']['courses']['Row'];
 type Project = Database['public']['Tables']['projects']['Row'];
 type CareerEvent = Database['public']['Tables']['career_events']['Row'];
+
+interface Employment {
+  id: string;
+  company_name: string;
+  job_title: string;
+  start_date: string;
+  end_date: string | null;
+  is_current: boolean | null;
+  description: string | null;
+}
+
+interface AwardType {
+  id: string;
+  title: string;
+  issuer: string | null;
+  date_received: string | null;
+  description: string | null;
+  url: string | null;
+}
 
 export default function RecipientDashboard() {
   const { user } = useAuth();
@@ -51,6 +75,8 @@ export default function RecipientDashboard() {
   const { data: journeyEvents = [] } = useMyJourneyEvents();
   const { data: xpRules = [] } = useXPRules();
   const { data: receivedDonations = [] } = useReceivedDonations();
+  const { data: employmentHistory = [] } = useMyEmploymentHistory();
+  const { data: awards = [] } = useMyAwards();
   const { canApply, currentXP, requiredXP, progress } = useCanApplyForDevice();
 
   const [inviteEmail, setInviteEmail] = useState('');
@@ -60,10 +86,15 @@ export default function RecipientDashboard() {
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isAddEmploymentModalOpen, setIsAddEmploymentModalOpen] = useState(false);
+  const [isAddAwardModalOpen, setIsAddAwardModalOpen] = useState(false);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [editingCareerEvent, setEditingCareerEvent] = useState<CareerEvent | null>(null);
+  const [editingEmployment, setEditingEmployment] = useState<Employment | null>(null);
+  const [editingAward, setEditingAward] = useState<AwardType | null>(null);
+  const [isXpExpanded, setIsXpExpanded] = useState(false);
 
   const isLoading = profileLoading || recipientLoading;
 
@@ -151,8 +182,8 @@ export default function RecipientDashboard() {
                   {profile?.location && (
                     <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {profile.location}{profile.country ? `, ${profile.country}` : ''}</span>
                   )}
-                  {recipientProfile?.creator_type && (
-                    <span className="flex items-center gap-1"><Briefcase className="h-4 w-4" /> {recipientProfile.creator_type}</span>
+                  {((recipientProfile as any)?.career || recipientProfile?.creator_type) && (
+                    <span className="flex items-center gap-1"><Briefcase className="h-4 w-4" /> {(recipientProfile as any)?.career || recipientProfile?.creator_type}</span>
                   )}
                   <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Member since {format(new Date(profile?.created_at || new Date()), 'MMM yyyy')}</span>
                 </div>
@@ -202,39 +233,52 @@ export default function RecipientDashboard() {
           <StatCard icon={<Award className="h-5 w-5" />} label="XP Points" value={xp.toLocaleString()} />
         </div>
 
-        {/* XP Breakdown Section */}
+        {/* XP Breakdown Section - Compact with Collapsible */}
         <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-xl font-display font-semibold mb-6 flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            XP Breakdown & Ranking
-          </h2>
-          
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* XP Score Display */}
-            <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl">
-              <div className="text-5xl font-display font-bold text-primary mb-2">
-                {xp.toLocaleString()}
-              </div>
-              <p className="text-muted-foreground mb-4">Total XP Points</p>
-              <RankBadge rank={rank} />
-            </div>
-
-            {/* XP Rules */}
-            <div className="md:col-span-2 space-y-3">
-              <h3 className="font-semibold text-sm text-muted-foreground mb-4">WAYS TO EARN XP</h3>
-              {xpRules.filter(r => r.is_active).slice(0, 6).map((rule) => (
-                <div key={rule.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Zap className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="text-sm">{rule.action}</span>
-                  </div>
-                  <span className="text-sm font-semibold text-primary">+{rule.xp_value} XP</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl">
+                <div className="text-3xl font-display font-bold text-primary">
+                  {xp.toLocaleString()}
                 </div>
-              ))}
+                <p className="text-xs text-muted-foreground">XP Points</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <RankBadge rank={rank} />
+                <div className="hidden sm:block">
+                  <h2 className="font-semibold">XP & Ranking</h2>
+                  <p className="text-sm text-muted-foreground">Earn XP to level up and unlock rewards</p>
+                </div>
+              </div>
             </div>
+            <Collapsible open={isXpExpanded} onOpenChange={setIsXpExpanded}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  {isXpExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  <span className="ml-2 hidden sm:inline">{isXpExpanded ? 'Hide' : 'Show'} XP Rules</span>
+                </Button>
+              </CollapsibleTrigger>
+            </Collapsible>
           </div>
+          
+          <Collapsible open={isXpExpanded} onOpenChange={setIsXpExpanded}>
+            <CollapsibleContent className="pt-4">
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-sm text-muted-foreground mb-3">WAYS TO EARN XP</h3>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {xpRules.filter(r => r.is_active).map((rule) => (
+                    <div key={rule.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-primary" />
+                        <span className="text-sm">{formatActionName(rule.action)}</span>
+                      </div>
+                      <span className="text-sm font-semibold text-primary">+{rule.xp_value} XP</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
 
         {/* Journey Timeline */}
@@ -523,6 +567,99 @@ export default function RecipientDashboard() {
           )}
         </div>
 
+        {/* Employment History */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-semibold">Employment History</h2>
+            <Button variant="outline" size="sm" onClick={() => setIsAddEmploymentModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Employment
+            </Button>
+          </div>
+          {employmentHistory.length > 0 ? (
+            <div className="glass-card rounded-xl p-4 space-y-4">
+              {(employmentHistory as Employment[]).map((employment) => (
+                <div 
+                  key={employment.id} 
+                  className="cursor-pointer hover:bg-muted/50 p-3 -mx-1 rounded-lg transition-colors border-b last:border-b-0"
+                  onClick={() => setEditingEmployment(employment)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-semibold">{employment.job_title}</h4>
+                      <p className="text-sm text-muted-foreground">{employment.company_name}</p>
+                    </div>
+                    <div className="text-xs text-muted-foreground text-right">
+                      {format(new Date(employment.start_date), 'MMM yyyy')} - {employment.is_current ? 'Present' : employment.end_date ? format(new Date(employment.end_date), 'MMM yyyy') : 'Present'}
+                    </div>
+                  </div>
+                  {employment.description && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{employment.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card rounded-xl p-8 text-center text-muted-foreground">
+              <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No employment history yet. Add your work experience!</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsAddEmploymentModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Job
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Awards */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-semibold">Awards & Achievements</h2>
+            <Button variant="outline" size="sm" onClick={() => setIsAddAwardModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Award
+            </Button>
+          </div>
+          {awards.length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              {(awards as AwardType[]).map((award) => (
+                <div 
+                  key={award.id} 
+                  className="glass-card rounded-xl p-4 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                  onClick={() => setEditingAward(award)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+                      <Trophy className="h-5 w-5 text-accent" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold truncate">{award.title}</h4>
+                      {award.issuer && <p className="text-sm text-muted-foreground">{award.issuer}</p>}
+                      {award.date_received && (
+                        <p className="text-xs text-muted-foreground mt-1">{format(new Date(award.date_received), 'MMMM yyyy')}</p>
+                      )}
+                    </div>
+                    {award.url && (
+                      <a href={award.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card rounded-xl p-8 text-center text-muted-foreground">
+              <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No awards yet. Add your achievements and recognition!</p>
+              <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsAddAwardModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Award
+              </Button>
+            </div>
+          )}
+        </div>
+
         {/* Skills */}
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -577,10 +714,14 @@ export default function RecipientDashboard() {
       <AddSkillModal isOpen={isAddSkillModalOpen} onClose={() => setIsAddSkillModalOpen(false)} />
       <AddCourseModal isOpen={isAddCourseModalOpen} onClose={() => setIsAddCourseModalOpen(false)} />
       <AddProjectModal isOpen={isAddProjectModalOpen} onClose={() => setIsAddProjectModalOpen(false)} />
+      <AddEmploymentModal isOpen={isAddEmploymentModalOpen} onClose={() => setIsAddEmploymentModalOpen(false)} />
+      <AddAwardModal isOpen={isAddAwardModalOpen} onClose={() => setIsAddAwardModalOpen(false)} />
       <EditSkillModal skill={editingSkill} isOpen={!!editingSkill} onClose={() => setEditingSkill(null)} />
       <EditCourseModal course={editingCourse} isOpen={!!editingCourse} onClose={() => setEditingCourse(null)} />
       <EditProjectModal project={editingProject} isOpen={!!editingProject} onClose={() => setEditingProject(null)} />
       <EditCareerEventModal event={editingCareerEvent} isOpen={!!editingCareerEvent} onClose={() => setEditingCareerEvent(null)} />
+      <EditEmploymentModal employment={editingEmployment} isOpen={!!editingEmployment} onClose={() => setEditingEmployment(null)} />
+      <EditAwardModal award={editingAward} isOpen={!!editingAward} onClose={() => setEditingAward(null)} />
       <EditRecipientProfileModal 
         profile={profile} 
         recipientProfile={recipientProfile} 

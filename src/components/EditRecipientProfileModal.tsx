@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUpdateProfile, useUpdateRecipientProfile } from '@/hooks/useProfiles';
@@ -14,7 +13,6 @@ import type { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type RecipientProfile = Database['public']['Tables']['recipient_profiles']['Row'];
-type CreatorType = Database['public']['Enums']['creator_type'];
 
 interface EditRecipientProfileModalProps {
   profile: Profile | null;
@@ -29,7 +27,7 @@ export function EditRecipientProfileModal({ profile, recipientProfile, isOpen, o
   const [country, setCountry] = useState('');
   const [tagline, setTagline] = useState('');
   const [bio, setBio] = useState('');
-  const [creatorType, setCreatorType] = useState<CreatorType>('other');
+  const [career, setCareer] = useState('');
   const [institution, setInstitution] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [twitterUrl, setTwitterUrl] = useState('');
@@ -51,7 +49,7 @@ export function EditRecipientProfileModal({ profile, recipientProfile, isOpen, o
     if (recipientProfile) {
       setTagline(recipientProfile.tagline || '');
       setBio(recipientProfile.bio || '');
-      setCreatorType(recipientProfile.creator_type || 'other');
+      setCareer((recipientProfile as any).career || '');
       setInstitution(recipientProfile.institution || '');
       setLinkedinUrl(recipientProfile.linkedin_url || '');
       setTwitterUrl(recipientProfile.twitter_url || '');
@@ -89,12 +87,12 @@ export function EditRecipientProfileModal({ profile, recipientProfile, isOpen, o
         updateRecipientProfile.mutateAsync({
           tagline: tagline || null,
           bio: bio || null,
-          creator_type: creatorType,
+          career: career || null,
           institution: institution || null,
           linkedin_url: linkedinUrl || null,
           twitter_url: twitterUrl || null,
           portfolio_url: portfolioUrl || null,
-        }),
+        } as any),
       ]);
       toast({ title: "Profile updated!", description: "Your profile changes have been saved." });
       onClose();
@@ -199,20 +197,13 @@ export function EditRecipientProfileModal({ profile, recipientProfile, isOpen, o
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Creator Type</Label>
-              <Select value={creatorType} onValueChange={(val) => setCreatorType(val as CreatorType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="developer">Developer</SelectItem>
-                  <SelectItem value="artist">Artist</SelectItem>
-                  <SelectItem value="entrepreneur">Entrepreneur</SelectItem>
-                  <SelectItem value="educator">Educator</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="career">Career</Label>
+              <Input
+                id="career"
+                placeholder="e.g., Software Developer"
+                value={career}
+                onChange={(e) => setCareer(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="institution">School/Organization</Label>

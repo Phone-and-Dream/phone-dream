@@ -121,8 +121,7 @@ export default function RecipientApply() {
           isValidEmail(email) &&
           location.trim() &&
           country &&
-          creatorType &&
-          (creatorType !== 'other' || otherCreatorType.trim())
+          creatorType.trim()
         );
       case 2:
         const wordCount = countWords(purpose);
@@ -184,24 +183,13 @@ export default function RecipientApply() {
         country: country,
       });
 
-      // Map creator type to valid enum value
-      const validCreatorTypes: Database['public']['Enums']['creator_type'][] = ['student', 'artist', 'entrepreneur', 'developer', 'educator', 'other'];
-      let mappedCreatorType: Database['public']['Enums']['creator_type'] = 'other';
-      
-      if (creatorType === 'content-creator') {
-        mappedCreatorType = 'other';
-      } else if (creatorType === 'designer') {
-        mappedCreatorType = 'artist';
-      } else if (validCreatorTypes.includes(creatorType as any)) {
-        mappedCreatorType = creatorType as Database['public']['Enums']['creator_type'];
-      }
-
+      // Store career as text in the career column
       // Upsert recipient profile
       const { error: profileError } = await supabase
         .from('recipient_profiles')
         .upsert({
           user_id: user.id,
-          creator_type: mappedCreatorType,
+          career: creatorType,
           school_or_career: schoolOrCareer,
           institution: institution || null,
         }, {
@@ -324,37 +312,19 @@ export default function RecipientApply() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="creatorType" className="flex items-center gap-2">
-                What type of creator are you? *
-                {creatorType && (creatorType !== 'other' || otherCreatorType.trim()) && <Check className="h-4 w-4 text-accent" />}
+                What is your career path? *
+                {creatorType.trim() && <Check className="h-4 w-4 text-accent" />}
               </Label>
-              <Select value={creatorType} onValueChange={setCreatorType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your creator type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="developer">Developer</SelectItem>
-                  <SelectItem value="designer">Designer</SelectItem>
-                  <SelectItem value="entrepreneur">Entrepreneur</SelectItem>
-                  <SelectItem value="content-creator">Content Creator</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input 
+                id="creatorType" 
+                placeholder="e.g., Software Developer, Graphic Designer, Data Analyst"
+                value={creatorType}
+                onChange={(e) => setCreatorType(e.target.value)}
+              />
+              {creatorType && !creatorType.trim() && (
+                <p className="text-xs text-destructive">Please enter your career path</p>
+              )}
             </div>
-            {creatorType === 'other' && (
-              <div className="space-y-2">
-                <Label htmlFor="otherCreatorType">Please specify your creator type *</Label>
-                <Input 
-                  id="otherCreatorType" 
-                  placeholder="e.g., Researcher, Artist, Journalist"
-                  value={otherCreatorType}
-                  onChange={(e) => setOtherCreatorType(e.target.value)}
-                />
-                {!otherCreatorType.trim() && (
-                  <p className="text-xs text-destructive">Please specify your creator type</p>
-                )}
-              </div>
-            )}
           </div>
         );
 
