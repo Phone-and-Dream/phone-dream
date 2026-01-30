@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Smartphone, Heart, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { TestnetBanner } from '@/components/TestnetBanner';
 
 const navLinks = [
   { name: 'Dream Board', href: '/dream-board', icon: Heart },
@@ -14,6 +15,9 @@ export function Navbar() {
   const location = useLocation();
 
   return (
+    <>
+      {/* Testnet Banner */}
+      <TestnetBanner />
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-display text-xl font-bold text-primary">
@@ -86,5 +90,6 @@ export function Navbar() {
         </div>
       )}
     </nav>
+    </>
   );
 }

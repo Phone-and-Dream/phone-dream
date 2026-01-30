@@ -251,31 +251,28 @@ export function useMintBadge() {
         tokenId = parsed?.args?.tokenId?.toString();
       }
 
-      // Store badge in database
-      const { data: badge, error } = await supabase
-        .from('impact_badges')
-        .insert({
-          device_id: device.id,
-          minter_user_id: user.id,
-          minter_type: minterType,
-          wallet_address: activeWallet.wallet_address,
-          token_id: tokenId,
-          tx_hash: receipt.hash,
-          network: 'avalanche_testnet',
-          metadata: {
-            device_type: device.device_type,
-            funding_type: device.funding_type,
-            recipient_career: recipientProfile.career,
-            region,
-            handover_date: device.handover_date,
+      // Validate and store badge via edge function
+      const { data: validateResponse, error: validateError } = await supabase
+        .functions.invoke('validate-mint', {
+          body: {
+            tx_hash: receipt.hash,
+            device_id: device.id,
+            minter_type: minterType,
+            expected_token_id: tokenId,
           },
-        })
-        .select()
-        .single();
+        });
 
-      if (error) throw error;
+      if (validateError) {
+        console.error('Validate mint error:', validateError);
+        throw new Error('Failed to validate mint on server');
+      }
 
-      return { badge, txHash: receipt.hash, tokenId };
+      if (!validateResponse?.success) {
+        const errorMessage = validateResponse?.error || 'Unknown validation error';
+        throw new Error(`Mint validation failed: ${errorMessage}`);
+      }
+
+      return { badge: validateResponse.badge, txHash: receipt.hash, tokenId };
     },
     onSuccess: ({ txHash }) => {
       queryClient.invalidateQueries({ queryKey: ['impact-badges'] });
