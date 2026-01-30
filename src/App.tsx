@@ -29,7 +29,16 @@ import RecipientSettings from "./pages/RecipientSettings";
 import DonorDonateChoice from "./pages/DonorDonateChoice";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false, // Prevent refetch when switching tabs
+      refetchOnMount: false, // Prevent refetch when component remounts
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
