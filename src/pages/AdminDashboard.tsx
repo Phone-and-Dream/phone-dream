@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2, ShieldCheck, Camera, ClipboardList } from 'lucide-react';
+import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2, ShieldCheck, Camera, ClipboardList, Cpu } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import { XPRulesManager } from '@/components/admin/XPRulesManager';
 import { useAllCashDonations } from '@/hooks/useCashDonations';
 import { TaskManager } from '@/components/admin/TaskManager';
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
+import { DeviceImpactManager } from '@/components/admin/DeviceImpactManager';
 import { logAdminAction } from '@/lib/auditLog';
 import { getStatusLabel, getStatusColor } from '@/lib/donationStateMachine';
 import { toast } from '@/hooks/use-toast';
@@ -296,6 +297,10 @@ export default function AdminDashboard() {
               Tasks
             </TabsTrigger>
             <TabsTrigger value="xp">XP Management</TabsTrigger>
+            <TabsTrigger value="device-impact">
+              <Cpu className="h-4 w-4 mr-1" />
+              Device Impact
+            </TabsTrigger>
             <TabsTrigger value="audit">
               <History className="h-4 w-4 mr-1" />
               Audit Log
@@ -778,6 +783,11 @@ export default function AdminDashboard() {
           donation={selectedVerification}
         />
       </div>
+
+      {/* DEVICE IMPACT TAB */}
+      <TabsContent value="device-impact">
+        <DeviceImpactManager />
+      </TabsContent>
     </DashboardLayout>
   );
 }

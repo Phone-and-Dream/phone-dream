@@ -7,6 +7,7 @@ import { Footer } from '@/components/layout/Footer';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { StatCard } from '@/components/ui/stat-card';
 import { NFTBadge } from '@/components/NFTBadge';
+import { ImpactBadgesSection } from '@/components/ImpactBadgesSection';
 import { JourneyTimeline } from '@/components/JourneyTimeline';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
@@ -279,6 +280,9 @@ export default function RecipientPublicProfile() {
                 </div>
               </div>
             )}
+
+            {/* Impact Badges Section */}
+            {id && <ImpactBadgesSection userId={id} userRole="recipient" />}
 
             {/* Journey Timeline */}
             {journeyTimelineEvents.length > 0 && (
