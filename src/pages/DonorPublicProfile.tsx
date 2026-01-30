@@ -6,6 +6,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { StatCard } from '@/components/ui/stat-card';
 import { NFTBadge } from '@/components/NFTBadge';
+import { ImpactBadgesSection } from '@/components/ImpactBadgesSection';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { format } from 'date-fns';
@@ -203,12 +204,15 @@ export default function DonorPublicProfile() {
               </p>
             </div>
 
-            {/* Delivered Donations with NFT Badges */}
+            {/* Impact Badges Section */}
+            {id && <ImpactBadgesSection userId={id} userRole="donor" />}
+
+            {/* Legacy Delivered Donations (fallback for old attestations) */}
             {deliveredDonations.length > 0 && (
               <div>
-                <h2 className="text-xl font-display font-semibold mb-4">Impact Badges</h2>
+                <h2 className="text-xl font-display font-semibold mb-4">Legacy Impact Badges</h2>
                 <p className="text-muted-foreground mb-6">
-                  Each badge represents a verified donation, permanently recorded on the blockchain as a Soulbound Token (SBT).
+                  These badges represent verified donations from the previous attestation system.
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {deliveredDonations.map((donation) => (

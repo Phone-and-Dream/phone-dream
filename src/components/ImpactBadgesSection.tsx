@@ -21,6 +21,7 @@ import {
 
 interface ImpactBadgesSectionProps {
   userId: string;
+  userRole?: 'donor' | 'recipient';
   showViewAll?: boolean;
 }
 
@@ -44,7 +45,7 @@ const deviceEmojis: Record<string, string> = {
   PC: '🖥️',
 };
 
-export function ImpactBadgesSection({ userId, showViewAll = true }: ImpactBadgesSectionProps) {
+export function ImpactBadgesSection({ userId, userRole = 'donor', showViewAll = true }: ImpactBadgesSectionProps) {
   const { groupedBadges, totalBadges, isLoading } = useImpactBadges(userId);
   const [selectedBadge, setSelectedBadge] = useState<ImpactBadge | null>(null);
 
