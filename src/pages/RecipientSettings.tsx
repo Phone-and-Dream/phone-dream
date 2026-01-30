@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Bell, Shield, Eye, Trash2, Loader2 } from 'lucide-react';
+import { User, Bell, Shield, Eye, Trash2, Loader2, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { BackButton } from '@/components/ui/back-button';
+import { WalletBalance } from '@/components/WalletBalance';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMyProfile, useMyRecipientProfile } from '@/hooks/useProfiles';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,7 +142,19 @@ export default function RecipientSettings() {
           <p className="text-muted-foreground">Manage your account preferences</p>
         </div>
 
-        {/* Account Settings */}
+        {/* Wallet Section */}
+        <div className="glass-card rounded-2xl p-6 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Wallet className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Blockchain Wallet</h2>
+              <p className="text-sm text-muted-foreground">Manage your wallet for minting Impact Badges</p>
+            </div>
+          </div>
+          <WalletBalance />
+        </div>
         <div className="glass-card rounded-2xl p-6 space-y-6">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">

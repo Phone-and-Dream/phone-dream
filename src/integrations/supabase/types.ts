@@ -381,6 +381,69 @@ export type Database = {
         }
         Relationships: []
       }
+      devices: {
+        Row: {
+          admin_confirmed: boolean
+          assigned_recipient_id: string | null
+          cash_donation_ids: string[] | null
+          condition: Database["public"]["Enums"]["device_condition"]
+          created_at: string
+          device_type: string
+          donation_id: string | null
+          funding_type: Database["public"]["Enums"]["funding_type"]
+          handover_date: string | null
+          id: string
+          minting_enabled: boolean
+          recipient_career_at_assignment: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_confirmed?: boolean
+          assigned_recipient_id?: string | null
+          cash_donation_ids?: string[] | null
+          condition?: Database["public"]["Enums"]["device_condition"]
+          created_at?: string
+          device_type: string
+          donation_id?: string | null
+          funding_type?: Database["public"]["Enums"]["funding_type"]
+          handover_date?: string | null
+          id?: string
+          minting_enabled?: boolean
+          recipient_career_at_assignment?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_confirmed?: boolean
+          assigned_recipient_id?: string | null
+          cash_donation_ids?: string[] | null
+          condition?: Database["public"]["Enums"]["device_condition"]
+          created_at?: string
+          device_type?: string
+          donation_id?: string | null
+          funding_type?: Database["public"]["Enums"]["funding_type"]
+          handover_date?: string | null
+          id?: string
+          minting_enabled?: boolean
+          recipient_career_at_assignment?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devices_assigned_recipient_id_fkey"
+            columns: ["assigned_recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devices_donation_id_fkey"
+            columns: ["donation_id"]
+            isOneToOne: false
+            referencedRelation: "donations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       donations: {
         Row: {
           condition: Database["public"]["Enums"]["device_condition"]
@@ -616,6 +679,92 @@ export type Database = {
           {
             foreignKeyName: "employment_history_recipient_id_fkey"
             columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impact_badges: {
+        Row: {
+          device_id: string
+          id: string
+          metadata: Json | null
+          minted_at: string
+          minter_type: Database["public"]["Enums"]["minter_type"]
+          minter_user_id: string
+          network: string
+          token_id: string | null
+          tx_hash: string | null
+          wallet_address: string
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          metadata?: Json | null
+          minted_at?: string
+          minter_type: Database["public"]["Enums"]["minter_type"]
+          minter_user_id: string
+          network?: string
+          token_id?: string | null
+          tx_hash?: string | null
+          wallet_address: string
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          metadata?: Json | null
+          minted_at?: string
+          minter_type?: Database["public"]["Enums"]["minter_type"]
+          minter_user_id?: string
+          network?: string
+          token_id?: string | null
+          tx_hash?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_badges_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      impact_pool_contributors: {
+        Row: {
+          contribution_amount: number | null
+          created_at: string
+          device_id: string
+          donor_id: string
+          id: string
+        }
+        Insert: {
+          contribution_amount?: number | null
+          created_at?: string
+          device_id: string
+          donor_id: string
+          id?: string
+        }
+        Update: {
+          contribution_amount?: number | null
+          created_at?: string
+          device_id?: string
+          donor_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impact_pool_contributors_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impact_pool_contributors_donor_id_fkey"
+            columns: ["donor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1009,6 +1158,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_wallets: {
+        Row: {
+          created_at: string
+          encrypted_seed: string | null
+          id: string
+          is_active: boolean
+          user_id: string
+          wallet_address: string
+          wallet_type: Database["public"]["Enums"]["wallet_type"]
+        }
+        Insert: {
+          created_at?: string
+          encrypted_seed?: string | null
+          id?: string
+          is_active?: boolean
+          user_id: string
+          wallet_address: string
+          wallet_type?: Database["public"]["Enums"]["wallet_type"]
+        }
+        Update: {
+          created_at?: string
+          encrypted_seed?: string | null
+          id?: string
+          is_active?: boolean
+          user_id?: string
+          wallet_address?: string
+          wallet_type?: Database["public"]["Enums"]["wallet_type"]
+        }
+        Relationships: []
+      }
       xp_rules: {
         Row: {
           action: string
@@ -1136,6 +1315,7 @@ export type Database = {
         | "impact_confirmed"
       donor_type: "individual" | "organization"
       dream_status: "open" | "matched" | "fulfilled"
+      funding_type: "physical_device" | "impact_pool"
       journey_event_type:
         | "device_received"
         | "skill_learned"
@@ -1144,6 +1324,7 @@ export type Database = {
         | "job_obtained"
         | "milestone"
         | "other"
+      minter_type: "donor" | "recipient"
       project_status: "planning" | "in_progress" | "completed" | "on_hold"
       recipient_rank: "Bronze" | "Silver" | "Gold" | "Platinum"
       recommendation_status: "pending" | "approved" | "verified"
@@ -1154,6 +1335,7 @@ export type Database = {
         | "language"
         | "other"
       skill_level: "beginner" | "intermediate" | "advanced" | "expert"
+      wallet_type: "created" | "connected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1333,6 +1515,7 @@ export const Constants = {
       ],
       donor_type: ["individual", "organization"],
       dream_status: ["open", "matched", "fulfilled"],
+      funding_type: ["physical_device", "impact_pool"],
       journey_event_type: [
         "device_received",
         "skill_learned",
@@ -1342,6 +1525,7 @@ export const Constants = {
         "milestone",
         "other",
       ],
+      minter_type: ["donor", "recipient"],
       project_status: ["planning", "in_progress", "completed", "on_hold"],
       recipient_rank: ["Bronze", "Silver", "Gold", "Platinum"],
       recommendation_status: ["pending", "approved", "verified"],
@@ -1353,6 +1537,7 @@ export const Constants = {
         "other",
       ],
       skill_level: ["beginner", "intermediate", "advanced", "expert"],
+      wallet_type: ["created", "connected"],
     },
   },
 } as const
