@@ -1,369 +1,144 @@
 
+# Implementation Plan: Validate-Mint Edge Function + Testnet UI Enhancements
 
-# Impact Badge (SBT) System - Phase 2 Implementation Plan
+## Overview
 
-## Executive Summary
-
-This plan transforms the current admin-minted attestation system into a user-controlled Impact Badge (SBT) system on Avalanche Testnet. Users will manage their own wallets and mint their own badges, with all blockchain interactions happening client-side.
-
----
-
-## Current State Analysis
-
-**What Exists:**
-- Smart contract (`ImpactSBT.sol`) with ERC-5192 soulbound functionality
-- Edge function (`create-attestation`) that mints via backend private key
-- `attestations` table storing tx_hash, network, metadata
-- NFTBadge component displaying badges on profiles
-- Device verification pipeline before matching
-- Cash donations tracked separately from physical devices
-
-**What Needs to Change:**
-- Shift from admin-minting to user-minting
-- Add wallet management (create, connect, export)
-- Introduce new database entities (devices, user_wallets, impact_records)
-- Update smart contract for user-minting with $2 AVAX fee
-- Update profile display with grouped badge summaries
-- Add Impact Pool funding type support
+This plan implements two key features:
+1. **Validate-Mint Edge Function** - Verifies client-side blockchain transactions and stores badge data securely
+2. **Testnet Indicator Banner** - A persistent visual indicator when operating on testnet to prevent user confusion
 
 ---
 
-## Database Schema Changes
+## Part A: Validate-Mint Edge Function
 
-### New Tables
+### Purpose
+When users mint badges client-side, we need a secure backend function to:
+- Verify the transaction actually occurred on-chain
+- Validate the transaction parameters match the expected values
+- Store the badge record in the database with verified data
+- Prevent fake/spoofed badge submissions
 
-**1. `devices` Table**
-Tracks physical devices and Impact Pool-funded devices separately from the donation workflow.
+### Architecture
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| device_type | text | Laptop, Phone, Tablet, etc. |
-| condition | device_condition | new, used, refurbished |
-| funding_type | enum | 'physical_device' or 'impact_pool' |
-| donation_id | uuid | Links to physical donation (nullable) |
-| cash_donation_ids | uuid[] | Links to cash donations for Impact Pool |
-| assigned_recipient_id | uuid | Recipient who received device |
-| handover_date | timestamptz | When device was handed over |
-| admin_confirmed | boolean | Admin confirmed delivery |
-| minting_enabled | boolean | Users can now mint |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
-
-**2. `user_wallets` Table**
-Stores wallet information for users.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| user_id | uuid | References auth user |
-| wallet_address | text | Ethereum-style address |
-| wallet_type | enum | 'created' or 'connected' |
-| encrypted_seed | text | Encrypted seed phrase (only for 'created') |
-| is_active | boolean | Currently active wallet |
-| created_at | timestamptz | |
-
-**3. `impact_badges` Table**
-Replaces/extends attestations for the new model.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| device_id | uuid | References devices |
-| minter_user_id | uuid | Who minted this badge |
-| minter_type | enum | 'donor' or 'recipient' |
-| wallet_address | text | Wallet that holds the SBT |
-| token_id | text | On-chain token ID |
-| tx_hash | text | Transaction hash |
-| network | text | 'avalanche_testnet' or 'avalanche' |
-| minted_at | timestamptz | |
-| metadata | jsonb | Device type, funding type, career at time, etc. |
-
-**4. `impact_pool_contributors` Table**
-Links cash donors to Impact Pool devices.
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| device_id | uuid | References devices |
-| donor_id | uuid | References user |
-| contribution_amount | numeric | Amount contributed |
-| created_at | timestamptz | |
-
----
-
-## Smart Contract Updates
-
-### Updated ImpactSBT Contract
-
-The current contract mints to recipients only. We need:
-
-```solidity
-// Key changes:
-- Remove onlyOwner from mintImpactBadge (anyone can mint for themselves)
-- Add minting fee: require(msg.value >= MINT_FEE, "Insufficient fee")
-- Add funding_type to ImpactData struct
-- Add impact_id reference
-- Add separate mint functions for donors vs recipients
-- Emit different events for donor/recipient mints
-
-// Constants
-uint256 public constant MINT_FEE = 0.01 ether; // ~$2 in AVAX testnet
-address public feeRecipient; // Platform treasury
-
-// New function
-function mintDonorBadge(...) external payable returns (uint256)
-function mintRecipientBadge(...) external payable returns (uint256)
+```text
+User Client                    Edge Function                 Blockchain
+     |                              |                            |
+     |---(1) Submit txHash -------->|                            |
+     |                              |---(2) Fetch tx receipt --->|
+     |                              |<---(3) Receipt data -------|
+     |                              |                            |
+     |                              |---(4) Verify:              |
+     |                              |    - tx success            |
+     |                              |    - correct contract      |
+     |                              |    - event data matches    |
+     |                              |                            |
+     |                              |---(5) Store in DB          |
+     |<--(6) Return badge data -----|                            |
 ```
 
-Deploy to **Avalanche Fuji Testnet** first:
-- RPC: `https://api.avax-test.network/ext/bc/C/rpc`
-- Chain ID: 43113
-- Get testnet AVAX from faucet: https://faucet.avax.network/
+### Edge Function: `validate-mint`
 
----
+**File:** `supabase/functions/validate-mint/index.ts`
 
-## Frontend Components
-
-### 1. Wallet Modal Component
-**File:** `src/components/WalletModal.tsx`
-
-Three-tab modal:
-1. **Create New Wallet**
-   - Generate wallet using ethers.js
-   - Display address + seed phrase with copy button
-   - Security warning about backing up seed
-   - Encrypt seed before storing
-
-2. **Connect Existing Wallet**
-   - MetaMask / Core Wallet integration
-   - WalletConnect support
-   - Request signature for verification
-   - Store only address (no keys)
-
-3. **Export Wallet** (only for created wallets)
-   - Reveal seed phrase with password confirmation
-   - Strong security warnings
-
-### 2. Wallet Balance Display
-**File:** `src/components/WalletBalance.tsx`
-
-- Show connected wallet address
-- Display AVAX balance
-- Network indicator (Testnet/Mainnet)
-- "Add AVAX" instructions (faucet for testnet)
-
-### 3. Updated Impact Badges Section
-**File:** `src/components/ImpactBadgesSection.tsx`
-
-**Summary View:**
-```
-Impact Badges
-├── 💻 Laptop Impact × 3
-├── 📱 Phone Impact × 2
-└── [View All]
-```
-
-**Detail View (new page):** `/profile/:id/impact-badges`
-- Grid of individual badges
-- Filter by device type
-- For Impact Pool: "Powered by Community Donors" with [View Contributors] link
-
-### 4. Mint Badge Flow
-**File:** `src/components/MintBadgeFlow.tsx`
-
-1. Check if wallet exists → if not, show WalletModal
-2. Check AVAX balance → if low, show "Add AVAX" instructions
-3. Confirm mint details (device, funding type, etc.)
-4. Execute transaction (client-side)
-5. Wait for confirmation
-6. Store in `impact_badges` table
-
----
-
-## Hooks
-
-### useWallet Hook
+**Request Body:**
 ```typescript
-// src/hooks/useWallet.ts
-export function useWallet() {
-  // Get active wallet for current user
-  // Create new wallet
-  // Connect external wallet
-  // Export wallet (decrypt seed)
-  // Get AVAX balance
+{
+  tx_hash: string;          // Transaction hash from client
+  device_id: string;        // Device being minted
+  minter_type: 'donor' | 'recipient';
+  expected_token_id?: string; // Optional: client-parsed token ID
 }
 ```
 
-### useImpactBadges Hook
+**Response:**
 ```typescript
-// src/hooks/useImpactBadges.ts
-export function useImpactBadges(userId: string) {
-  // Get all badges for user
-  // Get mintable devices (where minting_enabled && not yet minted by this user)
-  // Group badges by device type
-}
-
-export function useMintBadge() {
-  // Execute client-side mint
-  // Store badge in database
-}
-```
-
-### useDeviceImpact Hook
-```typescript
-// src/hooks/useDeviceImpact.ts
-export function useDeviceImpact(deviceId: string) {
-  // Get device details
-  // Get funding type
-  // Get contributors (for Impact Pool)
-  // Get who has minted
+{
+  success: boolean;
+  badge?: {
+    id: string;
+    device_id: string;
+    token_id: string;
+    tx_hash: string;
+    // ... full badge data
+  };
+  error?: string;
 }
 ```
 
----
+**Validation Steps:**
+1. Authenticate user via JWT
+2. Fetch transaction receipt from Avalanche RPC
+3. Verify transaction was successful (status = 1)
+4. Verify transaction was to our contract address
+5. Parse ImpactBadgeMinted event from logs
+6. Verify device_id and minter_type match event data
+7. Check if badge already exists (prevent duplicates)
+8. Insert badge record into `impact_badges` table
+9. Return the created badge
 
-## Admin Dashboard Updates
+### Config Update
 
-### New Admin Actions (before minting can occur):
-
-1. **Create Device Record**
-   - Manual entry for Impact Pool devices
-   - Auto-created from delivered donations
-
-2. **Assign Recipient**
-   - Link device to recipient
-   - Capture recipient's career at time of assignment
-
-3. **Link Donors**
-   - For physical: single donor
-   - For Impact Pool: multiple contributors
-
-4. **Confirm Handover**
-   - Set handover date
-   - Enable minting
-
-### Admin Tab: "Device Impact"
-- List all devices
-- Status: Pending → Assigned → Delivered → Minting Enabled
-- Actions per device
-
----
-
-## Security Considerations
-
-### Wallet Security
-- **Created wallets**: Encrypt seed phrase with user's password before storing
-- **Never store unencrypted seeds**
-- Use `crypto.subtle` for encryption in browser
-- Clear seed from memory after display
-
-### RLS Policies
-- Users can only read/update their own wallets
-- Impact badges are publicly readable
-- Only admins can enable minting on devices
-- Contributors list is public for Impact Pool devices
-
-### Client-Side Minting
-- All private key operations happen in browser
-- Edge function only validates and stores results
-- No platform private key for user mints
-
----
-
-## Testnet Configuration
-
-**Environment Variables:**
-```
-AVALANCHE_USE_TESTNET=true
-AVALANCHE_TESTNET_CONTRACT_ADDRESS=<deployed contract address>
+**File:** `supabase/config.toml`
+```toml
+[functions.validate-mint]
+verify_jwt = false
 ```
 
-**Frontend Config:**
+### Hook Update
+
+**File:** `src/hooks/useImpactBadges.ts`
+
+After successful on-chain mint, call the edge function to validate and store:
 ```typescript
-// src/lib/blockchain.ts
-export const NETWORK_CONFIG = {
-  testnet: {
-    chainId: 43113,
-    name: 'Avalanche Fuji Testnet',
-    rpcUrl: 'https://api.avax-test.network/ext/bc/C/rpc',
-    explorerUrl: 'https://testnet.snowtrace.io',
-    faucetUrl: 'https://faucet.avax.network',
-  },
-  mainnet: {
-    chainId: 43114,
-    name: 'Avalanche C-Chain',
-    rpcUrl: 'https://api.avax.network/ext/bc/C/rpc',
-    explorerUrl: 'https://snowtrace.io',
-  }
-};
+// After tx.wait() succeeds
+const response = await supabase.functions.invoke('validate-mint', {
+  body: { tx_hash: receipt.hash, device_id: device.id, minter_type }
+});
 ```
 
----
-
-## Implementation Sequence
-
-### Phase 2a: Database & Admin Setup
-1. Create new database tables (devices, user_wallets, impact_badges, impact_pool_contributors)
-2. Add RLS policies
-3. Update admin dashboard with Device Impact management
-4. Create admin actions for device lifecycle
-
-### Phase 2b: Wallet System
-1. Create WalletModal component
-2. Implement useWallet hook
-3. Add wallet management to user settings
-4. Test wallet creation/connection/export
-
-### Phase 2c: Smart Contract Update
-1. Update ImpactSBT.sol with user-minting
-2. Deploy to Avalanche Fuji Testnet
-3. Configure testnet contract address
-4. Test minting flow
-
-### Phase 2d: Minting Flow
-1. Create MintBadgeFlow component
-2. Implement client-side minting
-3. Add badge storage after successful mint
-4. Update profile displays
-
-### Phase 2e: Profile Updates
-1. Create ImpactBadgesSection with grouping
-2. Add detail page with individual badges
-3. Add "View Contributors" for Impact Pool
-4. Remove badges from activity feeds
+This replaces the current direct database insert, adding a security layer.
 
 ---
 
-## Improvements & Suggestions
+## Part B: Testnet Indicator Banner
 
-### 1. Progressive Disclosure for Wallet Setup
-Instead of requiring wallet setup upfront, only prompt when user clicks "Mint":
-- Smoother UX
-- Less friction for users who just want to browse
+### Purpose
+Add a prominent, persistent banner when the app is running on testnet to:
+- Prevent user confusion about real vs test transactions
+- Clearly indicate when badges/transactions are on testnet
+- Provide quick access to the faucet
 
-### 2. Gas Estimation Display
-Before minting, show:
-- Mint fee: ~$2 AVAX
-- Gas estimate: ~X AVAX
-- Total: ~$X
+### New Component: `TestnetBanner`
 
-### 3. Transaction Status Tracking
-Add a "Pending Mints" section that tracks:
-- Submitted transactions waiting for confirmation
-- Failed transactions with retry option
+**File:** `src/components/TestnetBanner.tsx`
 
-### 4. Faucet Integration Shortcut
-For testnet, add a "Get Test AVAX" button that opens the faucet pre-filled with the user's address.
+A sticky banner that appears at the top of the page when `USE_TESTNET = true`:
+- Yellow/amber styling for visibility
+- Shows "TESTNET MODE" with network name
+- Faucet link button
+- Can be minimized/dismissed per session
 
-### 5. QR Code for Wallet Address
-When showing "Add AVAX" instructions, display QR code for easy mobile wallet transfers.
+### Layout Integration
 
-### 6. Badge Gallery for Profiles
-Create a dedicated `/impact-gallery/:userId` page that's shareable and shows all badges in a visually appealing grid.
+**Files to modify:**
+- `src/components/layout/DashboardLayout.tsx` - Add banner above header
+- `src/components/layout/Navbar.tsx` - Add banner for public pages
 
-### 7. Separate Testnet Visual Indicator
-Add a prominent "TESTNET" banner when operating on testnet to prevent confusion.
+### Visual Design
+
+```text
+┌────────────────────────────────────────────────────────────┐
+│ ⚠️ TESTNET MODE - Avalanche Fuji | [Get Test AVAX] [Hide] │
+└────────────────────────────────────────────────────────────┘
+```
+
+Features:
+- Fixed position at top of viewport
+- Yellow/amber background with warning icon
+- Network name displayed
+- "Get Test AVAX" button opens faucet
+- "Hide" button minimizes to a small indicator in corner
+- State persisted in sessionStorage (not localStorage - resets on new tab)
 
 ---
 
@@ -371,52 +146,70 @@ Add a prominent "TESTNET" banner when operating on testnet to prevent confusion.
 
 | File | Action | Description |
 |------|--------|-------------|
-| `supabase/migrations/xxx_devices_wallets.sql` | Create | New tables + RLS |
-| `src/lib/blockchain.ts` | Create | Network config, contract ABIs |
-| `src/lib/wallet.ts` | Create | Wallet utilities (encrypt/decrypt) |
-| `src/hooks/useWallet.ts` | Create | Wallet management hook |
-| `src/hooks/useImpactBadges.ts` | Create | Badge queries and minting |
-| `src/components/WalletModal.tsx` | Create | Three-tab wallet modal |
-| `src/components/WalletBalance.tsx` | Create | Balance display component |
-| `src/components/MintBadgeFlow.tsx` | Create | Minting flow component |
-| `src/components/ImpactBadgesSection.tsx` | Create | Profile badge display |
-| `src/pages/ImpactBadgeDetail.tsx` | Create | Badge detail page |
-| `src/pages/AdminDashboard.tsx` | Modify | Add Device Impact tab |
-| `src/pages/DonorPublicProfile.tsx` | Modify | Use new badge section |
-| `src/pages/RecipientPublicProfile.tsx` | Modify | Use new badge section |
-| `src/pages/DonorSettings.tsx` | Modify | Add wallet management |
-| `src/pages/RecipientSettings.tsx` | Modify | Add wallet management |
-| `contracts/ImpactSBT.sol` | Modify | User-minting with fees |
-| `supabase/functions/validate-mint/index.ts` | Create | Validate mint after tx |
+| `supabase/functions/validate-mint/index.ts` | Create | Edge function for transaction verification |
+| `supabase/config.toml` | Modify | Add validate-mint function config |
+| `src/components/TestnetBanner.tsx` | Create | Persistent testnet indicator |
+| `src/hooks/useImpactBadges.ts` | Modify | Call validate-mint instead of direct insert |
+| `src/components/layout/DashboardLayout.tsx` | Modify | Add TestnetBanner |
+| `src/components/layout/Navbar.tsx` | Modify | Add TestnetBanner for public pages |
 
 ---
 
-## Dependencies to Add
+## Technical Details
 
-```json
-{
-  "ethers": "^6.9.0",
-  "@metamask/sdk": "^0.20.0",
-  "@walletconnect/modal": "^2.6.0"
-}
+### Edge Function Security
+
+The validate-mint function:
+1. Uses `getClaims()` to verify the JWT and get user ID
+2. Only allows the transaction sender to submit their own mints
+3. Verifies on-chain data matches submitted data
+4. Prevents duplicate submissions with database constraints
+
+### Testnet Detection
+
+Current implementation uses a hardcoded constant:
+```typescript
+export const USE_TESTNET = true;
 ```
 
+The TestnetBanner component will import this and conditionally render.
+
+### Error Handling
+
+The edge function will return specific error codes:
+- `TX_NOT_FOUND` - Transaction hash doesn't exist
+- `TX_FAILED` - Transaction reverted on-chain
+- `WRONG_CONTRACT` - Transaction was to a different contract
+- `EVENT_MISMATCH` - Event data doesn't match parameters
+- `ALREADY_MINTED` - Badge already exists for this device/user
+- `UNAUTHORIZED` - User not authenticated or not the minter
+
 ---
 
-## Testing Checklist
+## Implementation Sequence
 
-- [ ] Create wallet in-app
-- [ ] Connect MetaMask wallet
-- [ ] Export created wallet
-- [ ] Check AVAX balance
-- [ ] Mint as donor (physical device)
-- [ ] Mint as recipient (physical device)
-- [ ] Mint for Impact Pool device
-- [ ] View contributors for Impact Pool
-- [ ] Profile shows grouped badges
-- [ ] Detail page shows individual badges
-- [ ] Admin can create device record
-- [ ] Admin can enable minting
-- [ ] Testnet indicator visible
-- [ ] Error handling for failed transactions
+1. Create `validate-mint` edge function
+2. Update `supabase/config.toml` with function config
+3. Modify `useImpactBadges.ts` to use the edge function
+4. Create `TestnetBanner` component
+5. Integrate banner into `DashboardLayout`
+6. Integrate banner into `Navbar`
+7. Test complete minting flow with validation
+8. Verify testnet banner appears correctly
 
+---
+
+## Additional UI Polish
+
+While implementing the banner, I'll also add:
+
+1. **Network badge in wallet display** - Already exists in WalletBalance, will ensure consistency
+
+2. **Faucet pre-fill** - The faucet link will include the user's wallet address when available:
+   ```typescript
+   const faucetUrl = `${network.faucetUrl}?address=${walletAddress}`;
+   ```
+
+3. **Transaction pending indicator** - Show a subtle loading state while validate-mint runs after the on-chain transaction completes
+
+4. **Better error messages** - More user-friendly error messages for common blockchain errors (insufficient funds, user rejected, network issues)
