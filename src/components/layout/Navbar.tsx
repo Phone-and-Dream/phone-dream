@@ -128,10 +128,10 @@ export function Navbar() {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/coming-soon">Sign In</Link>
               </Button>
               <Button asChild>
-                <Link to="/signup">Get Started</Link>
+                <Link to="/coming-soon">Get Started</Link>
               </Button>
             </>
           )}
@@ -205,10 +205,10 @@ export function Navbar() {
               ) : (
                 <>
                   <Button variant="outline" className="w-full" asChild>
-                    <Link to="/login" onClick={() => setIsOpen(false)}>Sign In</Link>
+                    <Link to="/coming-soon" onClick={() => setIsOpen(false)}>Sign In</Link>
                   </Button>
                   <Button className="w-full" asChild>
-                    <Link to="/signup" onClick={() => setIsOpen(false)}>Get Started</Link>
+                    <Link to="/coming-soon" onClick={() => setIsOpen(false)}>Get Started</Link>
                   </Button>
                 </>
               )}

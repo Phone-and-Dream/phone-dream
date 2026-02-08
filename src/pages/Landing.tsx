@@ -1,11 +1,50 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Smartphone, Heart, Users, CheckCircle, Gift, Sparkles, Globe, ChevronDown, ChevronUp, Laptop, Tablet, Monitor, Keyboard, HardDrive, Eye, Target, Handshake, BarChart3, Clock } from 'lucide-react';
+import { ArrowRight, Smartphone, Heart, Users, Gift, Sparkles, Globe, ChevronDown, ChevronUp, Laptop, Tablet, Monitor, Keyboard, HardDrive, Eye, Target, Handshake, BarChart3, Clock, Building2, LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { WaitlistModal } from '@/components/WaitlistModal';
-import { mockRecipients } from '@/lib/mockData';
+
+interface AspirationalCard {
+  id: string;
+  name: string;
+  tagline: string;
+  location: string;
+  status: string;
+  icon: LucideIcon;
+  gradient: string;
+}
+
+const aspirationalCards: AspirationalCard[] = [
+  {
+    id: 'recipient',
+    name: 'Your Name',
+    tagline: 'Building a future with the right device',
+    location: 'Your City, Your Country',
+    status: 'Could receive a phone, laptop, or work device',
+    icon: Target,
+    gradient: 'from-accent/30 to-accent/10',
+  },
+  {
+    id: 'donor',
+    name: 'You, the Donor',
+    tagline: 'Helping someone\'s dream move forward',
+    location: 'Anywhere in the world',
+    status: 'Your donated device can change a life',
+    icon: Gift,
+    gradient: 'from-primary/30 to-primary/10',
+  },
+  {
+    id: 'organization',
+    name: 'Your Organization',
+    tagline: 'Empowering talent through shared devices',
+    location: 'Global Initiative',
+    status: 'Supporting dreams at scale',
+    icon: Building2,
+    gradient: 'from-blue-500/30 to-blue-400/10',
+  },
+];
 
 const stats = [
   { label: 'Devices Donated', value: '1,247', icon: Smartphone },
@@ -86,13 +125,13 @@ export default function Landing() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                 <Button size="lg" className="w-full sm:w-auto text-lg px-8" asChild>
-                  <Link to="/donor/register">
+                  <Link to="/coming-soon">
                     <Gift className="mr-2 h-5 w-5" />
                     Donate a Device
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8" asChild>
-                  <Link to="/recipient/apply">
+                  <Link to="/coming-soon">
                     I Need a Device
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -236,60 +275,57 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Featured Success Stories */}
+        {/* Featured Success Stories - Aspirational Placeholder Cards */}
         <section className="py-20 bg-card">
           <div className="container">
-            <div className="flex items-center justify-between mb-12">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-display font-bold mb-2">Success Stories</h2>
-                <p className="text-muted-foreground">See the impact of your donations</p>
-              </div>
-              <Button variant="outline" asChild>
-                <Link to="/dream-board">
-                  View All
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-display font-bold mb-2">Success Stories</h2>
+              <p className="text-muted-foreground">See the impact of your donations</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">
-              {mockRecipients.slice(0, 3).map((recipient) => (
-                <Link 
-                  key={recipient.id} 
-                  to={`/recipient/profile/${recipient.id}`}
-                  className="group glass-card rounded-2xl overflow-hidden hover:shadow-warm transition-shadow"
+              {aspirationalCards.map((card) => (
+                <div 
+                  key={card.id} 
+                  className="glass-card rounded-2xl overflow-hidden"
                 >
-                  <div className="h-32 bg-gradient-to-br from-primary/20 to-accent/20 relative">
-                    <img 
-                      src={recipient.avatar} 
-                      alt={recipient.name}
-                      className="absolute -bottom-8 left-6 w-20 h-20 rounded-xl object-cover border-4 border-card shadow-lg"
-                    />
-                  </div>
-                  <div className="p-6 pt-12">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-display font-semibold group-hover:text-primary transition-colors">
-                          {recipient.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">{recipient.tagline}</p>
-                      </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary">
-                        {recipient.rank}
-                      </span>
+                  <div className={`h-32 bg-gradient-to-br ${card.gradient} relative flex items-center justify-center`}>
+                    <div className="h-16 w-16 rounded-2xl bg-background/90 flex items-center justify-center shadow-lg">
+                      <card.icon className="h-8 w-8 text-primary" />
                     </div>
-                    <p className="text-sm text-muted-foreground mt-3">
-                      {recipient.location}, {recipient.country}
-                    </p>
-                    {recipient.deviceReceived && (
-                      <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-sm">
-                        <CheckCircle className="h-4 w-4 text-accent" />
-                        <span className="text-muted-foreground">Received {recipient.deviceReceived.type}</span>
-                      </div>
-                    )}
                   </div>
-                </Link>
+                  <div className="p-6">
+                    <h3 className="font-display font-semibold text-lg mb-1">
+                      {card.name}
+                    </h3>
+                    <p className="text-sm text-primary font-medium mb-2">{card.tagline}</p>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {card.location}
+                    </p>
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-sm text-muted-foreground italic">
+                        {card.status}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ))}
+            </div>
+
+            {/* This could be your story CTA */}
+            <div className="text-center mt-10">
+              <p className="text-lg text-muted-foreground mb-4">
+                <span className="text-foreground font-medium">This could be your story.</span>
+              </p>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={() => setWaitlistOpen(true)}
+                className="font-semibold"
+              >
+                Join the Waitlist
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </div>
           </div>
         </section>
@@ -305,10 +341,10 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto" asChild>
-                <Link to="/donor/register">Donate a Device</Link>
+                <Link to="/coming-soon">Donate a Device</Link>
               </Button>
               <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent border-primary-foreground/30 hover:bg-primary-foreground/10" asChild>
-                <Link to="/dream-board">Browse Dream Board</Link>
+                <Link to="/coming-soon">Browse Dream Board</Link>
               </Button>
             </div>
           </div>
