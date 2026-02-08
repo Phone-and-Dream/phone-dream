@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { isProductionEnvironment } from '@/lib/environment';
 
 // Routes that are accessible in preview mode (can be expanded for development)
 // Production mode only allows '/' and '/coming-soon'
@@ -26,9 +27,8 @@ const PRODUCTION_ALLOWED_ROUTES = ['/', '/coming-soon'];
 export function PrelaunchRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   
-  // Check if we're in production (published site)
-  const isProduction = typeof window !== 'undefined' && 
-    window.location.hostname.includes('lovable.app');
+  // Check if we're in production (published site or custom domain)
+  const isProduction = isProductionEnvironment();
   
   // Check if current route is allowed
   const isAllowedInProduction = PRODUCTION_ALLOWED_ROUTES.some(route => 
