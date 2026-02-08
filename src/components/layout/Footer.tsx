@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Smartphone, Heart } from 'lucide-react';
+import { Smartphone, Heart, Twitter } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -28,11 +28,18 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-display font-semibold mb-4">For Demos</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/recipient/dashboard" className="hover:text-primary transition-colors">Recipient Dashboard</Link></li>
-              <li><Link to="/donor/dashboard" className="hover:text-primary transition-colors">Donor Dashboard</Link></li>
-            </ul>
+            <h4 className="font-display font-semibold mb-4">Follow Us</h4>
+            <div className="flex items-center gap-4">
+              <a 
+                href="https://x.com/aphoneandadream" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary transition-colors"
+                aria-label="Follow us on X"
+              >
+                <Twitter className="h-5 w-5" />
+              </a>
+            </div>
           </div>
         </div>
 
