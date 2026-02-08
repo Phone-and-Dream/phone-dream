@@ -1,8 +1,18 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Smartphone, Heart, Users } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, Smartphone, Heart, Users, LayoutDashboard, Settings, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfiles';
 
 const navLinks = [
   { name: 'Dream Board', href: '/dream-board', icon: Heart },
@@ -12,6 +22,30 @@ const navLinks = [
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isDonor, isRecipient, isAdmin, signOut } = useAuth();
+  const { data: profile } = useProfile();
+
+  const getDashboardPath = () => {
+    if (isAdmin) return '/admin';
+    if (isDonor) return '/donor/dashboard';
+    if (isRecipient) return '/recipient/dashboard';
+    return '/';
+  };
+
+  const getSettingsPath = () => {
+    if (isDonor) return '/donor/settings';
+    if (isRecipient) return '/recipient/settings';
+    return '/';
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+    setIsOpen(false);
+  };
+
+  const isLoggedIn = !!user;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,16 +71,70 @@ export function Navbar() {
               {link.name}
             </Link>
           ))}
+          {isLoggedIn && (
+            <Link
+              to={getDashboardPath()}
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-primary",
+                location.pathname.includes('/dashboard') || location.pathname.includes('/admin')
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            >
+              Dashboard
+            </Link>
+          )}
         </div>
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" asChild>
-            <Link to="/login">Sign In</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/signup">Get Started</Link>
-          </Button>
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} />
+                    <AvatarFallback className="bg-primary/10">
+                      <User className="h-5 w-5 text-primary" />
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to={getDashboardPath()} className="flex items-center gap-2 cursor-pointer">
+                    <LayoutDashboard className="h-4 w-4" />
+                    My Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={getSettingsPath()} className="flex items-center gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="flex items-center gap-2 cursor-pointer text-destructive">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/login">Sign In</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/signup">Get Started</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -74,13 +162,56 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
+            {isLoggedIn && (
+              <Link
+                to={getDashboardPath()}
+                className="flex items-center gap-2 py-2 text-sm font-medium text-muted-foreground hover:text-primary"
+                onClick={() => setIsOpen(false)}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+            )}
             <div className="pt-3 border-t border-border space-y-2">
-              <Button variant="outline" className="w-full" asChild>
-                <Link to="/login" onClick={() => setIsOpen(false)}>Sign In</Link>
-              </Button>
-              <Button className="w-full" asChild>
-                <Link to="/signup" onClick={() => setIsOpen(false)}>Get Started</Link>
-              </Button>
+              {isLoggedIn ? (
+                <>
+                  <div className="flex items-center gap-3 py-2">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'User'} />
+                      <AvatarFallback className="bg-primary/10">
+                        <User className="h-5 w-5 text-primary" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+                      <p className="text-xs text-muted-foreground">{profile?.email}</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full justify-start gap-2" asChild>
+                    <Link to={getSettingsPath()} onClick={() => setIsOpen(false)}>
+                      <Settings className="h-4 w-4" />
+                      Settings
+                    </Link>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link to="/login" onClick={() => setIsOpen(false)}>Sign In</Link>
+                  </Button>
+                  <Button className="w-full" asChild>
+                    <Link to="/signup" onClick={() => setIsOpen(false)}>Get Started</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

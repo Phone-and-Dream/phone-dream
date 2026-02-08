@@ -155,10 +155,10 @@ export function EditRecipientProfileModal({ profile, recipientProfile, isOpen, o
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="location">City</Label>
+              <Label htmlFor="location">State</Label>
               <Input
                 id="location"
-                placeholder="e.g., Lagos"
+                placeholder="e.g., Lagos State"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
