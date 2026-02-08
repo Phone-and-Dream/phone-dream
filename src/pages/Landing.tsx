@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Smartphone, Heart, Users, CheckCircle, Gift, Sparkles, Globe, ChevronDown, ChevronUp, Laptop, Tablet, Monitor, Keyboard, HardDrive, Eye, Target, Handshake, BarChart3 } from 'lucide-react';
+import { ArrowRight, Smartphone, Heart, Users, CheckCircle, Gift, Sparkles, Globe, ChevronDown, ChevronUp, Laptop, Tablet, Monitor, Keyboard, HardDrive, Eye, Target, Handshake, BarChart3, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { WaitlistModal } from '@/components/WaitlistModal';
 import { mockRecipients } from '@/lib/mockData';
 
 const stats = [
@@ -58,6 +59,7 @@ const stakeholders = [
 
 export default function Landing() {
   const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -97,10 +99,23 @@ export default function Landing() {
                 </Button>
               </div>
 
+              {/* Waitlist CTA */}
+              <div className="mt-8 pt-6 border-t border-border/50 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                <p className="text-sm text-muted-foreground mb-3">Not ready yet? Be the first to know when we launch.</p>
+                <Button 
+                  variant="ghost" 
+                  className="text-primary hover:bg-primary/10 font-medium"
+                  onClick={() => setWaitlistOpen(true)}
+                >
+                  <Clock className="mr-2 h-4 w-4" />
+                  Join the Waitlist
+                </Button>
+              </div>
+
               {/* Learn More Button */}
               <button 
                 onClick={() => setAboutExpanded(!aboutExpanded)}
-                className="mt-8 inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium"
+                className="mt-6 inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors font-medium"
               >
                 Learn More About Our Mission
                 {aboutExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -301,6 +316,8 @@ export default function Landing() {
       </main>
 
       <Footer />
+      
+      <WaitlistModal open={waitlistOpen} onOpenChange={setWaitlistOpen} />
     </div>
   );
 }
