@@ -1,83 +1,75 @@
 
-# Implementation Plan: Enable Working Auth Links in Preview Environment
+# Implementation Plan: Update Landing CTAs to Signup Flow & Remove /dev Route
 
 ## Problem
-Currently, the Landing page (`/`) has all CTA buttons hardcoded to `/coming-soon`. The Navbar was updated to use `/dev` route detection, but users on the main landing page (`/`) are still stuck. The `PrelaunchRoute.tsx` already has environment detection logic that distinguishes between Preview and Production environments.
+The landing page currently directs users to `/donor/register` and `/recipient/apply` in Preview mode, but these routes require existing accounts. Additionally, the `/dev` route is now redundant since the main landing page works in Preview mode.
 
 ## Solution
-Implement environment-based routing in both `Navbar.tsx` and `Landing.tsx` to enable real authentication links in the **Preview environment only**, while keeping all links pointing to `/coming-soon` in **Production**.
+1. Update landing page CTA buttons to route to `/signup` with role pre-selection query parameters
+2. Add query parameter detection to the Signup form to auto-select the role
+3. Remove the `/dev` route from the app and delete the unused Index.tsx file
 
 ## Files to Change
 
-### 1. File: `src/components/layout/Navbar.tsx`
-**What's changing:** Replace the `isDevRoute` path-based check with environment-based detection.
+### 1. `src/pages/Landing.tsx`
+**Changes:**
+- Line 139: Change button link from `"/donor/register"` to `"/signup?role=donor"`
+- Line 145: Change button link from `"/recipient/apply"` to `"/signup?role=recipient"`
+- Line 358: Change button link from `"/donor/register"` to `"/signup?role=donor"`
 
-**Current logic:**
-```
-const isDevRoute = location.pathname === '/dev';
-// Uses isDevRoute in Sign In/Get Started links
-```
+**Result:** All "Donate a Device" buttons lead to `/signup?role=donor` and "I Need a Device" buttons lead to `/signup?role=recipient` in Preview mode.
 
-**New logic:**
-```
-const isPreview = typeof window !== 'undefined' && 
-  (window.location.hostname.includes('preview') || 
-   window.location.hostname === 'localhost' ||
-   window.location.hostname === '127.0.0.1');
+### 2. `src/pages/Signup.tsx`
+**Changes:**
+- Import `useSearchParams` from react-router-dom (update line 2)
+- Add `const [searchParams] = useSearchParams();` after the navigate hook (line 17)
+- Add a new `useEffect` hook after the validation helpers that reads the `role` query parameter and pre-selects it:
+  ```tsx
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'donor' || roleParam === 'recipient') {
+      setRole(roleParam);
+    }
+  }, [searchParams]);
+  ```
 
-// Use isPreview in Sign In/Get Started links
-```
+**Result:** When users click a CTA button with `?role=donor` or `?role=recipient`, the signup form automatically selects that role, streamlining the user flow.
 
-**Button updates:**
-- Line 132: `to={isDevRoute ? "/login" : "/coming-soon"}` → `to={isPreview ? "/login" : "/coming-soon"}`
-- Line 135: `to={isDevRoute ? "/signup" : "/coming-soon"}` → `to={isPreview ? "/signup" : "/coming-soon"}`
-- Line 209: `to={isDevRoute ? "/login" : "/coming-soon"}` → `to={isPreview ? "/login" : "/coming-soon"}`
-- Line 212: `to={isDevRoute ? "/signup" : "/coming-soon"}` → `to={isPreview ? "/signup" : "/coming-soon"}`
+### 3. `src/App.tsx`
+**Changes:**
+- Remove the import: `import Index from "./pages/Index";` (line 8)
+- Remove the route: `<Route path="/dev" element={<Index />} />` (line 56)
 
-### 2. File: `src/pages/Landing.tsx`
-**What's changing:** Add environment detection and use it to conditionally route CTA buttons.
+**Result:** The `/dev` route no longer exists; all routes now use the main landing page.
 
-**Locations to update:**
-1. Hero section - "Donate a Device" button (line 135)
-2. Hero section - "I Need a Device" button (line 141)  
-3. Final CTA section - "Donate a Device" button (line 354)
-4. Final CTA section - "Browse Dream Board" button (line 357)
+### 4. `src/pages/Index.tsx`
+**Changes:**
+- Delete this file entirely (no longer needed)
 
-**New logic:**
-```typescript
-const isPreview = typeof window !== 'undefined' && 
-  (window.location.hostname.includes('preview') || 
-   window.location.hostname === 'localhost' ||
-   window.location.hostname === '127.0.0.1');
-```
+### 5. `src/components/PrelaunchRoute.tsx` (optional cleanup)
+**Changes:**
+- The `/dev` route is not in the `PREVIEW_ONLY_ROUTES` array currently, so no changes needed here.
 
-**Button mapping (in Preview mode):**
-- "Donate a Device" → `/donor/register`
-- "I Need a Device" → `/recipient/apply`
-- "Browse Dream Board" → `/dream-board`
+## User Flow After Implementation
 
-**Button mapping (in Production mode):**
-- All buttons → `/coming-soon`
+**In Preview Mode:**
+- Landing page → "Donate a Device" → `/signup?role=donor` → Signup form auto-selects "I want to donate"
+- Landing page → "I Need a Device" → `/signup?role=recipient` → Signup form auto-selects "I need a device"
+- Navbar → "Get Started" → `/signup` → User manually selects role
+- `/dev` route → Returns 404 (no longer exists)
 
-## Result After Implementation
+**In Production Mode:**
+- All buttons remain locked to `/coming-soon`
 
-| Environment | Route | Links | Behavior |
-|-------------|-------|-------|----------|
-| **Preview** (dev/testing) | `/` | `/login`, `/signup`, `/donor/register`, `/recipient/apply`, `/dream-board` | Full access to auth flows |
-| **Production** (published) | `/` | `/coming-soon` | All buttons locked to coming-soon |
-| **Preview** | `/dev` | `/login`, `/signup` | Still works via navbar |
-| **Production** | `/dev` | `/coming-soon` | Redirects to coming-soon via PrelaunchRoute |
-
-## How This Works Together
-1. **PrelaunchRoute.tsx** already handles route-level access control (production users can only access `/` and `/coming-soon`)
-2. **Navbar.tsx** will detect environment and conditionally set button destinations
-3. **Landing.tsx** will detect environment and conditionally set CTA button destinations
-4. The environment detection logic reuses the same pattern already in `PrelaunchRoute.tsx` for consistency
+## Benefits
+- Streamlined signup flow: users immediately see their selected role pre-filled
+- Reduced friction: fewer clicks to reach the signup form
+- Cleaner codebase: removes the now-unnecessary `/dev` route and Index.tsx file
+- Consistent behavior: the main landing page now works the same in Preview and Production (with different link destinations)
 
 ## Testing Steps
-1. In Preview mode, navigate to `/`
-2. Click "Donate a Device" → should go to `/donor/register`
-3. Click "I Need a Device" → should go to `/recipient/apply`
-4. Click "Browse Dream Board" in final CTA → should go to `/dream-board`
-5. Click Sign In/Get Started in navbar → should go to `/login` / `/signup`
-6. In Production (after publishing), verify all buttons still go to `/coming-soon`
+1. Navigate to `/` in Preview mode
+2. Click "Donate a Device" → should go to `/signup?role=donor` with donor role pre-selected
+3. Click "I Need a Device" → should go to `/signup?role=recipient` with recipient role pre-selected
+4. Try navigating directly to `/dev` → should return 404 or redirect
+5. Verify production site still shows all buttons redirecting to `/coming-soon`
