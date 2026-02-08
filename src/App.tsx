@@ -5,7 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { PrelaunchRoute } from "./components/PrelaunchRoute";
 import Landing from "./pages/Landing";
+import ComingSoon from "./pages/ComingSoon";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RecipientApply from "./pages/RecipientApply";
@@ -47,55 +49,58 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/select-role" element={<RoleSelection />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/recipient/apply" element={<RecipientApply />} />
-            <Route path="/recipient/apply/success" element={<RecipientApplySuccess />} />
-            <Route path="/recipient/dashboard" element={
-              <ProtectedRoute requiredRole="recipient">
-                <RecipientDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/recipient/tasks" element={
-              <ProtectedRoute requiredRole="recipient">
-                <RecipientTasks />
-              </ProtectedRoute>
-            } />
-            <Route path="/recipient/settings" element={
-              <ProtectedRoute requiredRole="recipient">
-                <RecipientSettings />
-              </ProtectedRoute>
-            } />
-            <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
-            <Route path="/donor/donate" element={<DonorDonateChoice />} />
-            <Route path="/donor/register" element={<DonorRegister />} />
-            <Route path="/donor/dashboard" element={
-              <ProtectedRoute requiredRole="donor">
-                <DonorDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/donor/settings" element={
-              <ProtectedRoute requiredRole="donor">
-                <DonorSettings />
-              </ProtectedRoute>
-            } />
-            <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
-            <Route path="/donor/cash-donate" element={<CashDonate />} />
-            <Route path="/dream-board" element={<DreamBoard />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminDashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <PrelaunchRoute>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/coming-soon" element={<ComingSoon />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/select-role" element={<RoleSelection />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/recipient/apply" element={<RecipientApply />} />
+              <Route path="/recipient/apply/success" element={<RecipientApplySuccess />} />
+              <Route path="/recipient/dashboard" element={
+                <ProtectedRoute requiredRole="recipient">
+                  <RecipientDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/recipient/tasks" element={
+                <ProtectedRoute requiredRole="recipient">
+                  <RecipientTasks />
+                </ProtectedRoute>
+              } />
+              <Route path="/recipient/settings" element={
+                <ProtectedRoute requiredRole="recipient">
+                  <RecipientSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/recipient/profile/:id" element={<RecipientPublicProfile />} />
+              <Route path="/donor/donate" element={<DonorDonateChoice />} />
+              <Route path="/donor/register" element={<DonorRegister />} />
+              <Route path="/donor/dashboard" element={
+                <ProtectedRoute requiredRole="donor">
+                  <DonorDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/donor/settings" element={
+                <ProtectedRoute requiredRole="donor">
+                  <DonorSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/donor/profile/:id" element={<DonorPublicProfile />} />
+              <Route path="/donor/cash-donate" element={<CashDonate />} />
+              <Route path="/dream-board" element={<DreamBoard />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </PrelaunchRoute>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

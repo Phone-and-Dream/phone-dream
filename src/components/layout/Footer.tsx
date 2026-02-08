@@ -21,9 +21,9 @@ export function Footer() {
           <div>
             <h4 className="font-display font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/dream-board" className="hover:text-primary transition-colors">Dream Board</Link></li>
-              <li><Link to="/donor/register" className="hover:text-primary transition-colors">Donate a Device</Link></li>
-              <li><Link to="/recipient/apply" className="hover:text-primary transition-colors">Apply for a Device</Link></li>
+              <li><Link to="/coming-soon" className="hover:text-primary transition-colors">Dream Board</Link></li>
+              <li><Link to="/coming-soon" className="hover:text-primary transition-colors">Donate a Device</Link></li>
+              <li><Link to="/coming-soon" className="hover:text-primary transition-colors">Apply for a Device</Link></li>
             </ul>
           </div>
 
