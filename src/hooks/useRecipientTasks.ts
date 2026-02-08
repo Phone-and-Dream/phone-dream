@@ -198,7 +198,7 @@ export function useCanApplyForDevice() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  const { data: recipientProfile } = useQuery({
+  const { data: recipientProfile, isLoading } = useQuery({
     queryKey: ['recipient_profile_xp', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -249,5 +249,6 @@ export function useCanApplyForDevice() {
     currentXP: totalXP,
     requiredXP: 100,
     progress: Math.min((totalXP / 100) * 100, 100),
+    isLoading,
   };
 }

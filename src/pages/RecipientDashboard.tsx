@@ -38,6 +38,7 @@ import { useReceivedDonations } from '@/hooks/useDonations';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
+import { ProfileSkeleton, StatsSkeleton, SectionSkeleton, ApplyDeviceSkeleton } from '@/components/ui/dashboard-skeleton';
 
 type Skill = Database['public']['Tables']['skills']['Row'];
 type Course = Database['public']['Tables']['courses']['Row'];
@@ -67,17 +68,17 @@ export default function RecipientDashboard() {
   const { user } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
   const { data: recipientProfile, isLoading: recipientLoading } = useMyRecipientProfile();
-  const { data: skills = [] } = useMySkills();
-  const { data: courses = [] } = useMyCourses();
-  const { data: projects = [] } = useMyProjects();
-  const { data: careerEvents = [] } = useMyCareerEvents();
-  const { data: recommendations = [] } = useMyRecommendations();
-  const { data: journeyEvents = [] } = useMyJourneyEvents();
-  const { data: xpRules = [] } = useXPRules();
-  const { data: receivedDonations = [] } = useReceivedDonations();
-  const { data: employmentHistory = [] } = useMyEmploymentHistory();
-  const { data: awards = [] } = useMyAwards();
-  const { canApply, currentXP, requiredXP, progress } = useCanApplyForDevice();
+  const { data: skills = [], isLoading: skillsLoading } = useMySkills();
+  const { data: courses = [], isLoading: coursesLoading } = useMyCourses();
+  const { data: projects = [], isLoading: projectsLoading } = useMyProjects();
+  const { data: careerEvents = [], isLoading: careerEventsLoading } = useMyCareerEvents();
+  const { data: recommendations = [], isLoading: recommendationsLoading } = useMyRecommendations();
+  const { data: journeyEvents = [], isLoading: journeyLoading } = useMyJourneyEvents();
+  const { data: xpRules = [], isLoading: xpRulesLoading } = useXPRules();
+  const { data: receivedDonations = [], isLoading: donationsLoading } = useReceivedDonations();
+  const { data: employmentHistory = [], isLoading: employmentLoading } = useMyEmploymentHistory();
+  const { data: awards = [], isLoading: awardsLoading } = useMyAwards();
+  const { canApply, currentXP, requiredXP, progress, isLoading: xpProgressLoading } = useCanApplyForDevice();
 
   const [inviteEmail, setInviteEmail] = useState('');
   const [showInviteSuccess, setShowInviteSuccess] = useState(false);
@@ -95,8 +96,6 @@ export default function RecipientDashboard() {
   const [editingEmployment, setEditingEmployment] = useState<Employment | null>(null);
   const [editingAward, setEditingAward] = useState<AwardType | null>(null);
   const [isXpExpanded, setIsXpExpanded] = useState(false);
-
-  const isLoading = profileLoading || recipientLoading;
 
   const copyProfileLink = () => {
     if (user?.id) {
@@ -126,74 +125,73 @@ export default function RecipientDashboard() {
   // Get device received
   const deviceReceived = receivedDonations.find(d => d.status === 'delivered');
 
-  if (isLoading) {
-    return (
-      <DashboardLayout role="recipient">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Progressive loading: show skeletons per section instead of blocking the whole page
+  const isProfileLoading = profileLoading || recipientLoading;
 
   return (
     <DashboardLayout role="recipient">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Hero Profile Section */}
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="h-40 bg-gradient-to-br from-primary/30 via-primary/20 to-accent/20 relative">
-            <div className="absolute top-4 right-4 flex gap-2">
-              <Button size="sm" variant="secondary" onClick={() => setIsEditProfileModalOpen(true)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-              <Button size="sm" variant="secondary" asChild>
-                <Link to={`/recipient/profile/${user?.id}`} target="_blank">
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Public Profile
-                </Link>
-              </Button>
-              <Button size="sm" variant="secondary" onClick={copyProfileLink}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Public Link
-              </Button>
+        {isProfileLoading ? (
+          <ProfileSkeleton />
+        ) : (
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="h-40 bg-gradient-to-br from-primary/30 via-primary/20 to-accent/20 relative">
+              <div className="absolute top-4 right-4 flex gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setIsEditProfileModalOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button size="sm" variant="secondary" asChild>
+                  <Link to={`/recipient/profile/${user?.id}`} target="_blank">
+                    <Eye className="h-4 w-4 mr-2" />
+                    View Public Profile
+                  </Link>
+                </Button>
+                <Button size="sm" variant="secondary" onClick={copyProfileLink}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Public Link
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="p-6 pt-0 -mt-12">
-            <div className="flex flex-col md:flex-row md:items-end gap-4">
-              <Avatar className="w-24 h-24 rounded-2xl border-4 border-card shadow-lg">
-                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'Profile'} className="object-cover" />
-                <AvatarFallback className="rounded-2xl bg-primary/10 text-3xl font-bold text-primary">
-                  {profile?.full_name?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-2xl font-display font-bold">{profile?.full_name || 'Your Name'}</h1>
-                  <RankBadge rank={rank} />
-                  {recipientProfile?.is_verified && (
-                    <span className="inline-flex items-center gap-1 text-xs text-accent">
-                      <CheckCircle className="h-4 w-4" /> Verified
-                    </span>
-                  )}
-                </div>
-                <p className="text-muted-foreground">{recipientProfile?.tagline || 'Add a tagline to your profile'}</p>
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
-                  {profile?.location && (
-                    <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {profile.location}{profile.country ? `, ${profile.country}` : ''}</span>
-                  )}
-                  {((recipientProfile as any)?.career || recipientProfile?.creator_type) && (
-                    <span className="flex items-center gap-1"><Briefcase className="h-4 w-4" /> {(recipientProfile as any)?.career || recipientProfile?.creator_type}</span>
-                  )}
-                  <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Member since {format(new Date(profile?.created_at || new Date()), 'MMM yyyy')}</span>
+            <div className="p-6 pt-0 -mt-12">
+              <div className="flex flex-col md:flex-row md:items-end gap-4">
+                <Avatar className="w-24 h-24 rounded-2xl border-4 border-card shadow-lg">
+                  <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'Profile'} className="object-cover" />
+                  <AvatarFallback className="rounded-2xl bg-primary/10 text-3xl font-bold text-primary">
+                    {profile?.full_name?.charAt(0) || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h1 className="text-2xl font-display font-bold">{profile?.full_name || 'Your Name'}</h1>
+                    <RankBadge rank={rank} />
+                    {recipientProfile?.is_verified && (
+                      <span className="inline-flex items-center gap-1 text-xs text-accent">
+                        <CheckCircle className="h-4 w-4" /> Verified
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-muted-foreground">{recipientProfile?.tagline || 'Add a tagline to your profile'}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground flex-wrap">
+                    {profile?.location && (
+                      <span className="flex items-center gap-1"><MapPin className="h-4 w-4" /> {profile.location}{profile.country ? `, ${profile.country}` : ''}</span>
+                    )}
+                    {((recipientProfile as any)?.career || recipientProfile?.creator_type) && (
+                      <span className="flex items-center gap-1"><Briefcase className="h-4 w-4" /> {(recipientProfile as any)?.career || recipientProfile?.creator_type}</span>
+                    )}
+                    <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> Member since {format(new Date(profile?.created_at || new Date()), 'MMM yyyy')}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Apply for Device CTA */}
-        {!deviceReceived && (
+        {donationsLoading || xpProgressLoading ? (
+          <ApplyDeviceSkeleton />
+        ) : !deviceReceived && (
           <div className="glass-card rounded-2xl p-6 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <div className="h-14 w-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -225,13 +223,17 @@ export default function RecipientDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <StatCard icon={<FolderOpen className="h-5 w-5" />} label="Projects" value={stats.projectsCompleted} />
-          <StatCard icon={<Sparkles className="h-5 w-5" />} label="Skills" value={stats.skillsLearned} />
-          <StatCard icon={<BookOpen className="h-5 w-5" />} label="Courses" value={stats.coursesFinished} />
-          <StatCard icon={<Users className="h-5 w-5" />} label="Communities" value={stats.communitiesJoined} />
-          <StatCard icon={<Award className="h-5 w-5" />} label="XP Points" value={xp.toLocaleString()} />
-        </div>
+        {isProfileLoading ? (
+          <StatsSkeleton count={5} />
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <StatCard icon={<FolderOpen className="h-5 w-5" />} label="Projects" value={stats.projectsCompleted} />
+            <StatCard icon={<Sparkles className="h-5 w-5" />} label="Skills" value={stats.skillsLearned} />
+            <StatCard icon={<BookOpen className="h-5 w-5" />} label="Courses" value={stats.coursesFinished} />
+            <StatCard icon={<Users className="h-5 w-5" />} label="Communities" value={stats.communitiesJoined} />
+            <StatCard icon={<Award className="h-5 w-5" />} label="XP Points" value={xp.toLocaleString()} />
+          </div>
+        )}
 
         {/* XP Breakdown Section - Compact with Collapsible */}
         <div className="glass-card rounded-2xl p-6">
