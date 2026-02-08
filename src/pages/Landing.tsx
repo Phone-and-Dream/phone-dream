@@ -107,10 +107,9 @@ export default function Landing() {
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   
-  const isPreview = typeof window !== 'undefined' && 
-    (window.location.hostname.includes('preview') || 
-     window.location.hostname === 'localhost' ||
-     window.location.hostname === '127.0.0.1');
+  const isProduction = typeof window !== 'undefined' && 
+    window.location.hostname.includes('lovable.app');
+  const isPreview = !isProduction;
 
   return (
     <div className="min-h-screen flex flex-col">
