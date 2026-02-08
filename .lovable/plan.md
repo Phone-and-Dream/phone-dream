@@ -1,215 +1,190 @@
 
-# Implementation Plan: Validate-Mint Edge Function + Testnet UI Enhancements
 
-## Overview
+# Implementation Plan: UX Improvements
 
-This plan implements two key features:
-1. **Validate-Mint Edge Function** - Verifies client-side blockchain transactions and stores badge data securely
-2. **Testnet Indicator Banner** - A persistent visual indicator when operating on testnet to prevent user confusion
+## Summary
+
+This plan addresses three distinct issues:
+1. **City → State label change**: Update the field label from "City" to "State" in profile edit modals
+2. **Navbar authentication-awareness**: Make the Navbar show different content for logged-in users vs. guests, and improve back button navigation
+3. **Recipient selection modal improvements**: Enhance the donation flow's recipient selection with filtering and better UX
 
 ---
 
-## Part A: Validate-Mint Edge Function
+## Issue 1: Change "City" Label to "State"
 
-### Purpose
-When users mint badges client-side, we need a secure backend function to:
-- Verify the transaction actually occurred on-chain
-- Validate the transaction parameters match the expected values
-- Store the badge record in the database with verified data
-- Prevent fake/spoofed badge submissions
+### Files to Modify
 
-### Architecture
+| File | Change |
+|------|--------|
+| `src/components/EditDonorProfileModal.tsx` | Line 169: Change label from "City" to "State", update placeholder |
+| `src/components/EditRecipientProfileModal.tsx` | Line 158: Change label from "City" to "State", update placeholder |
+
+### Technical Details
+- The `RecipientApply.tsx` already uses "State" (line 280) - this is correct
+- The database column is `profiles.location` which is fine for storing state
+- Only the label/placeholder needs updating in the edit modals
+
+---
+
+## Issue 2: Navbar Authentication Awareness & Navigation
+
+### Problem Analysis
+- The current `Navbar` component always shows "Sign In" and "Get Started" buttons
+- Logged-in users navigating to public pages (DreamBoard, public profiles) see these buttons even though they're authenticated
+- Browser back button behavior causes confusion when leaving dashboard
+
+### Solution
+Create an authentication-aware Navbar that:
+1. Shows "Sign In / Get Started" for guests
+2. Shows "Dashboard" and user avatar/menu for logged-in users
+3. Maintains proper navigation context
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/layout/Navbar.tsx` | Add auth check, conditionally render navigation based on login state |
+
+### New Navigation Behavior
+
+**For Guests:**
+- Dream Board link
+- About link  
+- "Sign In" button
+- "Get Started" button
+
+**For Logged-in Users:**
+- Dream Board link
+- Dashboard link (based on role: donor/recipient/admin)
+- User avatar with dropdown menu:
+  - My Dashboard
+  - Settings
+  - Sign Out
+
+### Technical Implementation
+```typescript
+// In Navbar.tsx:
+import { useAuth } from '@/contexts/AuthContext';
+
+const { user, isDonor, isRecipient, isAdmin, signOut } = useAuth();
+
+// Get dashboard path based on role
+const getDashboardPath = () => {
+  if (isAdmin) return '/admin';
+  if (isDonor) return '/donor/dashboard';
+  if (isRecipient) return '/recipient/dashboard';
+  return '/';
+};
+```
+
+---
+
+## Issue 3: Recipient Selection Modal Improvements
+
+### Problem Analysis
+- Current modal shows a simple scrollable list without filtering
+- With many users, finding specific recipients becomes difficult
+- No search or device type filter available
+
+### Recommended Solution: **Add filters to the existing modal**
+
+This approach keeps the donation flow self-contained while adding usability:
+- Search by name or purpose
+- Filter by device type needed
+- Maintains the split-panel design with preview
+
+### Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/components/RecipientSelectionStep.tsx` | Add search input and device filter dropdown inside the modal |
+
+### UI Design
 
 ```text
-User Client                    Edge Function                 Blockchain
-     |                              |                            |
-     |---(1) Submit txHash -------->|                            |
-     |                              |---(2) Fetch tx receipt --->|
-     |                              |<---(3) Receipt data -------|
-     |                              |                            |
-     |                              |---(4) Verify:              |
-     |                              |    - tx success            |
-     |                              |    - correct contract      |
-     |                              |    - event data matches    |
-     |                              |                            |
-     |                              |---(5) Store in DB          |
-     |<--(6) Return badge data -----|                            |
++--------------------------------------------------+
+| Select a Recipient from the Dream Board          |
++--------------------------------------------------+
+| [🔍 Search by name or purpose...] [Filter: All ▾]|
++--------------------------------------------------+
+| Recipients List        |    Preview Panel        |
+|                        |                         |
+| ○ Maya Johnson         |  [Selected Profile]     |
+|   Needs: Laptop        |                         |
+|                        |  Name, Location         |
+| ○ Taiwo Adeyemi        |  Device Needed          |
+|   Needs: Smartphone    |  Story preview          |
+|                        |  Goals/Milestones       |
+| ○ Grace Okonkwo        |                         |
+|   Needs: Tablet        |  [Donate to this...]    |
+|                        |                         |
++--------------------------------------------------+
 ```
 
-### Edge Function: `validate-mint`
+### Technical Implementation
 
-**File:** `supabase/functions/validate-mint/index.ts`
-
-**Request Body:**
+Add state for search and filter:
 ```typescript
-{
-  tx_hash: string;          // Transaction hash from client
-  device_id: string;        // Device being minted
-  minter_type: 'donor' | 'recipient';
-  expected_token_id?: string; // Optional: client-parsed token ID
-}
-```
+const [searchQuery, setSearchQuery] = useState('');
+const [deviceFilter, setDeviceFilter] = useState('all');
 
-**Response:**
-```typescript
-{
-  success: boolean;
-  badge?: {
-    id: string;
-    device_id: string;
-    token_id: string;
-    tx_hash: string;
-    // ... full badge data
-  };
-  error?: string;
-}
-```
-
-**Validation Steps:**
-1. Authenticate user via JWT
-2. Fetch transaction receipt from Avalanche RPC
-3. Verify transaction was successful (status = 1)
-4. Verify transaction was to our contract address
-5. Parse ImpactBadgeMinted event from logs
-6. Verify device_id and minter_type match event data
-7. Check if badge already exists (prevent duplicates)
-8. Insert badge record into `impact_badges` table
-9. Return the created badge
-
-### Config Update
-
-**File:** `supabase/config.toml`
-```toml
-[functions.validate-mint]
-verify_jwt = false
-```
-
-### Hook Update
-
-**File:** `src/hooks/useImpactBadges.ts`
-
-After successful on-chain mint, call the edge function to validate and store:
-```typescript
-// After tx.wait() succeeds
-const response = await supabase.functions.invoke('validate-mint', {
-  body: { tx_hash: receipt.hash, device_id: device.id, minter_type }
+// Filter the dreamRequests
+const filteredRequests = dreamRequests.filter(req => {
+  const matchesSearch = !searchQuery || 
+    req.recipient?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    req.purpose.toLowerCase().includes(searchQuery.toLowerCase());
+  
+  const matchesDevice = deviceFilter === 'all' || 
+    req.device_needed.toLowerCase() === deviceFilter;
+  
+  return matchesSearch && matchesDevice;
 });
 ```
 
-This replaces the current direct database insert, adding a security layer.
-
----
-
-## Part B: Testnet Indicator Banner
-
-### Purpose
-Add a prominent, persistent banner when the app is running on testnet to:
-- Prevent user confusion about real vs test transactions
-- Clearly indicate when badges/transactions are on testnet
-- Provide quick access to the faucet
-
-### New Component: `TestnetBanner`
-
-**File:** `src/components/TestnetBanner.tsx`
-
-A sticky banner that appears at the top of the page when `USE_TESTNET = true`:
-- Yellow/amber styling for visibility
-- Shows "TESTNET MODE" with network name
-- Faucet link button
-- Can be minimized/dismissed per session
-
-### Layout Integration
-
-**Files to modify:**
-- `src/components/layout/DashboardLayout.tsx` - Add banner above header
-- `src/components/layout/Navbar.tsx` - Add banner for public pages
-
-### Visual Design
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│ ⚠️ TESTNET MODE - Avalanche Fuji | [Get Test AVAX] [Hide] │
-└────────────────────────────────────────────────────────────┘
+Add filter UI above the list:
+```tsx
+<div className="flex gap-2 mb-4">
+  <div className="relative flex-1">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <Input 
+      placeholder="Search by name or purpose..." 
+      className="pl-10"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+    />
+  </div>
+  <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+    <SelectTrigger className="w-40">
+      <SelectValue placeholder="All Devices" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="all">All Devices</SelectItem>
+      <SelectItem value="laptop">Laptop</SelectItem>
+      <SelectItem value="smartphone">Smartphone</SelectItem>
+      <SelectItem value="tablet">Tablet</SelectItem>
+      <SelectItem value="pc">PC</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
 ```
 
-Features:
-- Fixed position at top of viewport
-- Yellow/amber background with warning icon
-- Network name displayed
-- "Get Test AVAX" button opens faucet
-- "Hide" button minimizes to a small indicator in corner
-- State persisted in sessionStorage (not localStorage - resets on new tab)
+---
+
+## Implementation Order
+
+1. **Issue 1** (Simple label change) - 2 files, minimal risk
+2. **Issue 2** (Navbar auth awareness) - 1 file, medium complexity
+3. **Issue 3** (Recipient selection filters) - 1 file, medium complexity
 
 ---
 
-## Files to Create/Modify
+## Files Changed Summary
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/validate-mint/index.ts` | Create | Edge function for transaction verification |
-| `supabase/config.toml` | Modify | Add validate-mint function config |
-| `src/components/TestnetBanner.tsx` | Create | Persistent testnet indicator |
-| `src/hooks/useImpactBadges.ts` | Modify | Call validate-mint instead of direct insert |
-| `src/components/layout/DashboardLayout.tsx` | Modify | Add TestnetBanner |
-| `src/components/layout/Navbar.tsx` | Modify | Add TestnetBanner for public pages |
+| File | Type | Changes |
+|------|------|---------|
+| `src/components/EditDonorProfileModal.tsx` | Edit | Label "City" → "State" |
+| `src/components/EditRecipientProfileModal.tsx` | Edit | Label "City" → "State" |
+| `src/components/layout/Navbar.tsx` | Edit | Add auth awareness, conditional rendering |
+| `src/components/RecipientSelectionStep.tsx` | Edit | Add search + device filter |
 
----
-
-## Technical Details
-
-### Edge Function Security
-
-The validate-mint function:
-1. Uses `getClaims()` to verify the JWT and get user ID
-2. Only allows the transaction sender to submit their own mints
-3. Verifies on-chain data matches submitted data
-4. Prevents duplicate submissions with database constraints
-
-### Testnet Detection
-
-Current implementation uses a hardcoded constant:
-```typescript
-export const USE_TESTNET = true;
-```
-
-The TestnetBanner component will import this and conditionally render.
-
-### Error Handling
-
-The edge function will return specific error codes:
-- `TX_NOT_FOUND` - Transaction hash doesn't exist
-- `TX_FAILED` - Transaction reverted on-chain
-- `WRONG_CONTRACT` - Transaction was to a different contract
-- `EVENT_MISMATCH` - Event data doesn't match parameters
-- `ALREADY_MINTED` - Badge already exists for this device/user
-- `UNAUTHORIZED` - User not authenticated or not the minter
-
----
-
-## Implementation Sequence
-
-1. Create `validate-mint` edge function
-2. Update `supabase/config.toml` with function config
-3. Modify `useImpactBadges.ts` to use the edge function
-4. Create `TestnetBanner` component
-5. Integrate banner into `DashboardLayout`
-6. Integrate banner into `Navbar`
-7. Test complete minting flow with validation
-8. Verify testnet banner appears correctly
-
----
-
-## Additional UI Polish
-
-While implementing the banner, I'll also add:
-
-1. **Network badge in wallet display** - Already exists in WalletBalance, will ensure consistency
-
-2. **Faucet pre-fill** - The faucet link will include the user's wallet address when available:
-   ```typescript
-   const faucetUrl = `${network.faucetUrl}?address=${walletAddress}`;
-   ```
-
-3. **Transaction pending indicator** - Show a subtle loading state while validate-mint runs after the on-chain transaction completes
-
-4. **Better error messages** - More user-friendly error messages for common blockchain errors (insufficient funds, user rejected, network issues)
