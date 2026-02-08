@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Heart, Check, ExternalLink, ChevronDown, ChevronUp, MapPin, GraduationCap, Shield } from 'lucide-react';
+import { Users, Heart, Check, ExternalLink, ChevronDown, ChevronUp, MapPin, GraduationCap, Shield, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RankBadge } from '@/components/ui/rank-badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOpenDreamRequests } from '@/hooks/useDreamRequests';
@@ -28,8 +30,32 @@ export function RecipientSelectionStep({ onSelect, onBack }: RecipientSelectionS
   const [selectedRecipient, setSelectedRecipient] = useState<DreamRequestWithDetails | null>(null);
   const [previewRecipient, setPreviewRecipient] = useState<DreamRequestWithDetails | null>(null);
   const [isStoryExpanded, setIsStoryExpanded] = useState(false);
+  
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deviceFilter, setDeviceFilter] = useState('all');
 
   const { data: dreamRequests = [], isLoading } = useOpenDreamRequests();
+
+  // Filter the dream requests
+  const filteredRequests = useMemo(() => {
+    return dreamRequests.filter(req => {
+      const matchesSearch = !searchQuery || 
+        req.recipient?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        req.purpose.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesDevice = deviceFilter === 'all' || 
+        req.device_needed.toLowerCase().includes(deviceFilter.toLowerCase());
+      
+      return matchesSearch && matchesDevice;
+    });
+  }, [dreamRequests, searchQuery, deviceFilter]);
+
+  // Get unique device types for filter dropdown
+  const deviceTypes = useMemo(() => {
+    const types = new Set(dreamRequests.map(req => req.device_needed.toLowerCase()));
+    return Array.from(types).sort();
+  }, [dreamRequests]);
 
   const handleMethodSelect = (method: SelectionMethod) => {
     setSelectedMethod(method);
@@ -180,16 +206,46 @@ export function RecipientSelectionStep({ onSelect, onBack }: RecipientSelectionS
             <DialogTitle>Select a Recipient from the Dream Board</DialogTitle>
           </DialogHeader>
           
+          {/* Search and Filter */}
+          <div className="flex gap-2 py-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search by name or purpose..." 
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Select value={deviceFilter} onValueChange={setDeviceFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="All Devices" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Devices</SelectItem>
+                {deviceTypes.map((type) => (
+                  <SelectItem key={type} value={type} className="capitalize">
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="flex-1 flex gap-4 min-h-0">
             {/* Recipients List */}
             <ScrollArea className="flex-1">
               <div className="grid gap-3 pr-4">
                 {isLoading ? (
                   <div className="text-center py-8 text-muted-foreground">Loading dreamers...</div>
-                ) : dreamRequests.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">No dream requests available</div>
+                ) : filteredRequests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {dreamRequests.length === 0 
+                      ? 'No dream requests available' 
+                      : 'No dreamers match your search'}
+                  </div>
                 ) : (
-                  dreamRequests.map((request) => (
+                  filteredRequests.map((request) => (
                     <button
                       key={request.id}
                       type="button"

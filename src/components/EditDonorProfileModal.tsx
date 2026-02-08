@@ -166,10 +166,10 @@ export function EditDonorProfileModal({ profile, donorProfile, isOpen, onClose }
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="location">City</Label>
+              <Label htmlFor="location">State</Label>
               <Input
                 id="location"
-                placeholder="e.g., San Francisco"
+                placeholder="e.g., California"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
