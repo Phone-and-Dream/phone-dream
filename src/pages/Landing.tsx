@@ -99,15 +99,15 @@ export default function Landing() {
                 </Button>
               </div>
 
-              {/* Waitlist CTA */}
-              <div className="mt-8 pt-6 border-t border-border/50 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                <p className="text-sm text-muted-foreground mb-3">Not ready yet? Be the first to know when we launch.</p>
+{/* Waitlist CTA */}
+              <div className="mt-10 pt-8 border-t border-border/50 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                <p className="text-lg md:text-xl font-medium text-foreground mb-4">Be the first to know when we launch.</p>
                 <Button 
-                  variant="ghost" 
-                  className="text-primary hover:bg-primary/10 font-medium"
+                  size="lg"
+                  className="text-lg px-8 py-6 font-semibold shadow-lg hover:shadow-xl transition-all"
                   onClick={() => setWaitlistOpen(true)}
                 >
-                  <Clock className="mr-2 h-4 w-4" />
+                  <Clock className="mr-2 h-5 w-5" />
                   Join the Waitlist
                 </Button>
               </div>
