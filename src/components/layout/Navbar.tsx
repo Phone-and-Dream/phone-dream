@@ -46,7 +46,10 @@ export function Navbar() {
   };
 
   const isLoggedIn = !!user;
-  const isDevRoute = location.pathname === '/dev';
+  const isPreview = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('preview') || 
+     window.location.hostname === 'localhost' ||
+     window.location.hostname === '127.0.0.1');
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -129,10 +132,10 @@ export function Navbar() {
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link to={isDevRoute ? "/login" : "/coming-soon"}>Sign In</Link>
+                <Link to={isPreview ? "/login" : "/coming-soon"}>Sign In</Link>
               </Button>
               <Button asChild>
-                <Link to={isDevRoute ? "/signup" : "/coming-soon"}>Get Started</Link>
+                <Link to={isPreview ? "/signup" : "/coming-soon"}>Get Started</Link>
               </Button>
             </>
           )}
@@ -206,10 +209,10 @@ export function Navbar() {
               ) : (
                 <>
                   <Button variant="outline" className="w-full" asChild>
-                    <Link to={isDevRoute ? "/login" : "/coming-soon"} onClick={() => setIsOpen(false)}>Sign In</Link>
+                    <Link to={isPreview ? "/login" : "/coming-soon"} onClick={() => setIsOpen(false)}>Sign In</Link>
                   </Button>
                   <Button className="w-full" asChild>
-                    <Link to={isDevRoute ? "/signup" : "/coming-soon"} onClick={() => setIsOpen(false)}>Get Started</Link>
+                    <Link to={isPreview ? "/signup" : "/coming-soon"} onClick={() => setIsOpen(false)}>Get Started</Link>
                   </Button>
                 </>
               )}

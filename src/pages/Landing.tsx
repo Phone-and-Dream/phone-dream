@@ -106,6 +106,11 @@ const stakeholders = [
 export default function Landing() {
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
+  
+  const isPreview = typeof window !== 'undefined' && 
+    (window.location.hostname.includes('preview') || 
+     window.location.hostname === 'localhost' ||
+     window.location.hostname === '127.0.0.1');
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -132,13 +137,13 @@ export default function Landing() {
               
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
                 <Button size="lg" className="w-full sm:w-auto text-lg px-8" asChild>
-                  <Link to="/coming-soon">
+                  <Link to={isPreview ? "/donor/register" : "/coming-soon"}>
                     <Gift className="mr-2 h-5 w-5" />
                     Donate a Device
                   </Link>
                 </Button>
                 <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8" asChild>
-                  <Link to="/coming-soon">
+                  <Link to={isPreview ? "/recipient/apply" : "/coming-soon"}>
                     I Need a Device
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -351,10 +356,10 @@ export default function Landing() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto" asChild>
-                <Link to="/coming-soon">Donate a Device</Link>
+                <Link to={isPreview ? "/donor/register" : "/coming-soon"}>Donate a Device</Link>
               </Button>
               <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent border-primary-foreground/30 hover:bg-primary-foreground/10" asChild>
-                <Link to="/coming-soon">Browse Dream Board</Link>
+                <Link to={isPreview ? "/dream-board" : "/coming-soon"}>Browse Dream Board</Link>
               </Button>
             </div>
           </div>
