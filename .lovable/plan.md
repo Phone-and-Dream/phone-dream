@@ -1,47 +1,61 @@
 
-# Implementation Plan: Create Working Homepage at /dev
+# Implementation Plan: Fix Navbar to Use Real Auth Links on /dev
 
-## Summary
-Create a fully functional homepage at `/dev` where all authentication buttons (Sign In, Sign Up, Get Started) link to the actual auth pages instead of the coming-soon page.
+## Problem
+You're on the `/dev` page which has working CTA buttons in the page content, but the **Navbar** at the top still links "Sign In" and "Get Started" to `/coming-soon` instead of `/login` and `/signup`.
 
-## What This Will Do
-- Transform the blank `Index.tsx` into a working homepage
-- Include the Navbar and Footer for consistent navigation
-- All CTA buttons will link to real auth pages:
-  - **Sign In** → `/login`
-  - **Sign Up** / **Get Started** → `/signup`
-  - **Donate a Device** → `/donor/register`
-  - **I Need a Device** → `/recipient/apply`
+## Solution
+Update the Navbar component to detect when it's on the `/dev` route and use real authentication links.
 
-## File Changes
+## Changes Required
 
-### File: `src/pages/Index.tsx`
+### File: `src/components/layout/Navbar.tsx`
 
-Replace the blank placeholder with a functional homepage that mirrors the Landing page structure but with working auth links.
+**What we'll change:**
+The Navbar currently has hardcoded links:
+- "Sign In" → `/coming-soon`
+- "Get Started" → `/coming-soon`
 
-**Key Differences from Landing.tsx:**
-| Element | Landing.tsx | Index.tsx (new) |
-|---------|-------------|-----------------|
-| Sign In button | → `/coming-soon` | → `/login` |
-| Get Started button | → `/coming-soon` | → `/signup` |
-| Donate a Device | → `/coming-soon` | → `/donor/register` |
-| I Need a Device | → `/coming-soon` | → `/recipient/apply` |
-| Join Waitlist CTA | Shows waitlist modal | Shows "Get Started" to `/signup` |
+We'll make it context-aware:
+- On `/dev` route: "Sign In" → `/login`, "Get Started" → `/signup`
+- On other routes: Keep current behavior (`/coming-soon`)
 
-**Structure:**
-- Navbar with working auth buttons
-- Hero section with working CTAs
-- Stats section (same as Landing)
-- How It Works section (same as Landing)
-- Success Stories section (same as Landing)
-- Final CTA section with working links
-- Footer
+**Technical approach:**
+1. Use the existing `location` from `useLocation()` (already imported)
+2. Check if `location.pathname === '/dev'`
+3. Conditionally set the link destinations
 
-## How to Navigate Between Pages
-- **Landing page (pre-launch)**: `/` - buttons go to coming-soon
-- **Working homepage (dev/testing)**: `/dev` - buttons go to real auth pages
+**Code changes:**
+```tsx
+// Add after line 48 (const isLoggedIn = !!user;)
+const isDevRoute = location.pathname === '/dev';
 
-## Result
-You'll have two versions of the homepage:
-1. `/` - Public landing with waitlist focus (for pre-launch)
-2. `/dev` - Fully functional with working auth (for development/testing)
+// Update desktop buttons (around lines 130-136)
+// Change: <Link to="/coming-soon">Sign In</Link>
+// To: <Link to={isDevRoute ? "/login" : "/coming-soon"}>Sign In</Link>
+
+// Change: <Link to="/coming-soon">Get Started</Link>
+// To: <Link to={isDevRoute ? "/signup" : "/coming-soon"}>Get Started</Link>
+
+// Update mobile buttons (around lines 207-211)
+// Same pattern for mobile menu
+```
+
+## Result After Implementation
+
+| Route | "Sign In" goes to | "Get Started" goes to |
+|-------|-------------------|----------------------|
+| `/` (Landing) | `/coming-soon` | `/coming-soon` |
+| `/dev` (Index) | `/login` | `/signup` |
+
+## How to Test
+1. Navigate to `/dev`
+2. Click "Sign In" in the Navbar → should go to `/login`
+3. Click "Get Started" in the Navbar → should go to `/signup`
+4. Navigate to `/` (Landing page)
+5. Verify buttons still go to `/coming-soon`
+
+## Optional: Add /dev to PrelaunchRoute allowed list
+Currently, `/dev` is **not** in the `ALLOWED_ROUTES` list in `PrelaunchRoute.tsx`. This means if you publish the site, `/dev` would redirect to `/coming-soon` in production.
+
+If you want `/dev` accessible on the published site for internal testing, I can also add it to the allowed routes list. Let me know!
