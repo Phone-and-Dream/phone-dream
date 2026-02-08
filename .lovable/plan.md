@@ -1,162 +1,67 @@
 
+## Goal
+Make sure **any visit on your custom domain** is treated as “production (pre-launch)” so routes like `/login` always redirect to `/coming-soon`, even if hostname matching or CDN caching behaves unexpectedly.
 
-# Fix: Complete Route Protection for Custom Domain
+## What I found (from the codebase)
+- `PrelaunchRoute` is correct now: in production it whitelists only `['/', '/coming-soon']` and redirects everything else.
+- The only realistic reason `/login` would still be accessible on the custom domain is:  
+  **`isProductionEnvironment()` is evaluating to `false` on that domain**, so the app thinks it’s in preview/development and allows all routes.
+- Current `isProductionEnvironment()` is **allowlist-based** (only returns true if the hostname matches one of the entries). Even a small mismatch (different subdomain, trailing dot, alternate host, etc.) will break production detection.
 
-## Problem Identified
+## Likely root causes (non-code + code)
+1. **Hostname mismatch** on the custom domain (e.g., you’re actually on `www.`, a different subdomain, or a forwarded hostname).
+2. **Stale cached build** served on the custom domain (the older build still uses the older “lovable.app-only” check).
+3. **Environment detection too strict** (allowlist doesn’t cover every possible hostname form).
 
-After analyzing the code, I found **two issues**:
+## Implementation approach
+### 1) Make production detection robust (recommended)
+Update `src/lib/environment.ts` so production is determined by **“not preview and not local/dev”** rather than a brittle hostname allowlist.
 
-### Issue 1: Missing Routes in Protection List
+New logic concept:
+- Return **false** for:
+  - Preview URLs: hostname contains `id-preview--`
+  - Local dev: `localhost`, `127.0.0.1`
+  - Lovable editor sandbox domain: ends with `.lovableproject.com` (used by the in-editor environment)
+- Return **true** for everything else (includes published domain + any custom domain)
 
-Several routes in `App.tsx` are **not listed** in `PREVIEW_ONLY_ROUTES`, which means they slip through the protection:
+This guarantees:
+- Custom domains always behave as production, without needing to keep updating a list.
+- Preview continues to behave as preview.
 
-| Route | Purpose | Should be Protected? |
-|-------|---------|---------------------|
-| `/forgot-password` | Password recovery | Yes - requires auth system |
-| `/reset-password` | Password reset | Yes - requires auth system |
-| `/recipient/profile/:id` | Public profile | Maybe - depends if you want public profiles pre-launch |
-| `/donor/profile/:id` | Public profile | Maybe - depends if you want public profiles pre-launch |
-| `/donor/cash-donate` | Cash donation page | Yes - functional route |
+### 2) (Optional but very helpful) Add a debug switch to verify what the app thinks
+Add a small debug log that only triggers when `?debugEnv=1` is present:
+- Logs:
+  - `hostname`
+  - computed `isProduction`
+  - why it was classified that way (preview/local/sandbox/production)
 
-### Issue 2: Catch-All Logic Flaw
+This helps confirm in 30 seconds whether the issue is caching or classification.
 
-The current logic at line 48-53:
-```tsx
-// In preview, allow preview-only routes
-if (!isProduction && (isAllowedInProduction || isPreviewRoute)) {
-  return <>{children}</>;
-}
+## Files to change
+1. `src/lib/environment.ts`
+   - Replace current `PRODUCTION_HOSTNAMES` allowlist approach with robust detection.
+   - (Optional) add debug logging when `debugEnv=1`.
 
-// For any other routes (like error pages), allow them
-return <>{children}</>;  // ← This ALWAYS returns children!
-```
+No changes needed to `PrelaunchRoute.tsx` (it already enforces the redirect correctly as long as `isProductionEnvironment()` returns true).
 
-The final `return <>{children}</>` is a **catch-all that always allows the route**, even in production! This means any route not explicitly listed anywhere slips through.
+## Test plan (very specific)
+After publishing the updated frontend:
+1. Open an **incognito/private** window (to avoid cached JS).
+2. Visit:
+   - `https://aphoneandadream.com/login?debugEnv=1`
+3. Expected:
+   - It should redirect to `https://aphoneandadream.com/coming-soon`
+4. If debug logging is enabled, open browser devtools console and confirm it logs:
+   - hostname = `aphoneandadream.com` (or whatever it truly is)
+   - isProduction = `true`
+5. Confirm preview still works:
+   - Preview URL `/login` should remain accessible (no redirect).
 
----
+## Rollback / safety
+- This change only affects environment classification; it does not touch authentication, database, or routing structure.
+- Preview URLs remain explicitly excluded, so development/testing won’t get locked.
 
-## Solution
-
-### Fix 1: Add Missing Routes to Protection List
-
-Add all functional routes to `PREVIEW_ONLY_ROUTES`:
-```tsx
-const PREVIEW_ONLY_ROUTES = [
-  '/login',
-  '/signup',
-  '/select-role',
-  '/forgot-password',      // ADD
-  '/reset-password',       // ADD
-  '/donor/register',
-  '/donor/donate',
-  '/donor/dashboard',
-  '/donor/settings',
-  '/donor/cash-donate',    // ADD
-  '/donor/profile',        // ADD (for /donor/profile/:id)
-  '/recipient/apply',
-  '/recipient/apply/success',
-  '/recipient/dashboard',
-  '/recipient/tasks',
-  '/recipient/settings',
-  '/recipient/profile',    // ADD (for /recipient/profile/:id)
-  '/dream-board',
-  '/leaderboard',
-  '/admin/login',
-  '/admin',
-];
-```
-
-### Fix 2: Fix the Catch-All Logic
-
-Change the final return to redirect unknown routes in production:
-```tsx
-export function PrelaunchRoute({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const isProduction = isProductionEnvironment();
-  
-  const isAllowedInProduction = PRODUCTION_ALLOWED_ROUTES.some(route => 
-    location.pathname === route || location.pathname.startsWith(route + '/')
-  );
-  
-  const isPreviewRoute = PREVIEW_ONLY_ROUTES.some(route => 
-    location.pathname === route || location.pathname.startsWith(route + '/')
-  );
-  
-  // In production, ONLY allow explicitly allowed routes
-  if (isProduction) {
-    if (isAllowedInProduction) {
-      return <>{children}</>;
-    }
-    // Everything else redirects to coming-soon
-    return <Navigate to="/coming-soon" replace />;
-  }
-  
-  // In preview/development, allow all routes
-  return <>{children}</>;
-}
-```
-
-This is a much simpler and safer logic:
-- **Production**: Only allow `/` and `/coming-soon`, redirect everything else
-- **Preview**: Allow everything
-
----
-
-## Files to Change
-
-| File | Change |
-|------|--------|
-| `src/components/PrelaunchRoute.tsx` | Simplify logic + add missing routes |
-
-## Complete Updated Code
-
-```tsx
-import { Navigate, useLocation } from 'react-router-dom';
-import { isProductionEnvironment } from '@/lib/environment';
-
-// Routes allowed in production (pre-launch)
-const PRODUCTION_ALLOWED_ROUTES = ['/', '/coming-soon'];
-
-export function PrelaunchRoute({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  
-  // Check if we're in production (published site or custom domain)
-  const isProduction = isProductionEnvironment();
-  
-  // In production, only allow specific routes
-  if (isProduction) {
-    const isAllowedInProduction = PRODUCTION_ALLOWED_ROUTES.some(route => 
-      location.pathname === route || location.pathname.startsWith(route + '/')
-    );
-    
-    if (isAllowedInProduction) {
-      return <>{children}</>;
-    }
-    
-    // Redirect all other routes to coming-soon
-    return <Navigate to="/coming-soon" replace />;
-  }
-  
-  // In preview/development, allow all routes
-  return <>{children}</>;
-}
-```
-
-This removes the `PREVIEW_ONLY_ROUTES` list entirely since we don't need it - in production we have a whitelist, in preview we allow everything.
-
----
-
-## Testing Steps
-
-After publishing:
-
-1. Visit `aphoneandadream.com` → Should show landing page
-2. Visit `aphoneandadream.com/coming-soon` → Should show coming soon page
-3. Visit `aphoneandadream.com/login` → Should redirect to `/coming-soon`
-4. Visit `aphoneandadream.com/donor/dashboard` → Should redirect to `/coming-soon`
-5. Visit `aphoneandadream.com/forgot-password` → Should redirect to `/coming-soon`
-6. Click "Donate a Device" button → Should go to `/coming-soon`
-
-In preview (id-preview--*.lovable.app):
-1. All routes should work normally for testing
-
+## If it still doesn’t work after this
+That would strongly indicate the **custom domain is serving an older cached build**. In that case, we’ll:
+- Verify the hostname being served (via the debug switch).
+- Add an additional “build version” string in the UI (visible only with `?debugEnv=1`) so you can confirm the custom domain is running the newest publish.
