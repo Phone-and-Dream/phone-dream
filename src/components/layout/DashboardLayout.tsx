@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Smartphone, 
   LayoutDashboard, 
@@ -50,7 +50,13 @@ const adminLinks = [
 
 export function DashboardLayout({ children, role }: DashboardLayoutProps) {
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
   
   // Build recipient links dynamically to include user ID for public profile
   const dynamicRecipientLinks = [
@@ -90,11 +96,14 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-muted-foreground" asChild>
-              <Link to="/login">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Link>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
             </Button>
           </div>
         </div>
