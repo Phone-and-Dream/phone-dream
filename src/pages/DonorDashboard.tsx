@@ -14,6 +14,7 @@ import { useMyDonations } from '@/hooks/useDonations';
 import { useMyCashDonations } from '@/hooks/useCashDonations';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { DonorProfileSkeleton, StatsSkeleton, TableSkeleton } from '@/components/ui/dashboard-skeleton';
 
 export default function DonorDashboard() {
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
@@ -23,7 +24,7 @@ export default function DonorDashboard() {
   const { data: donations = [], isLoading: donationsLoading } = useMyDonations();
   const { data: cashDonations = [], isLoading: cashLoading } = useMyCashDonations();
 
-  const isLoading = profileLoading || donorLoading || donationsLoading || cashLoading;
+  const isProfileLoading = profileLoading || donorLoading;
 
   const copyProfileLink = () => {
     if (user?.id) {
@@ -47,68 +48,62 @@ export default function DonorDashboard() {
   // Get delivered donations for NFT badges
   const deliveredDonations = donations.filter(d => d.status === 'delivered' && d.matched_recipient_id);
 
-  if (isLoading) {
-    return (
-      <DashboardLayout role="donor">
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
   return (
     <DashboardLayout role="donor">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header with profile actions */}
-        <div className="glass-card rounded-2xl p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 rounded-2xl">
-                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || donorProfile?.organization_name || 'Profile'} className="object-cover rounded-2xl" />
-                <AvatarFallback className="rounded-2xl bg-primary/10 text-3xl font-bold text-primary">
-                  {profile?.full_name?.charAt(0) || donorProfile?.organization_name?.charAt(0) || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-display font-bold">
-                  {donorProfile?.organization_name || profile?.full_name || 'Your Name'}
-                </h1>
-                <p className="text-muted-foreground">
-                  {donorProfile?.donor_type === 'organization' ? 'Organization' : 'Individual Donor'} • {profile?.location || 'Location not set'}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Member since {format(new Date(profile?.created_at || new Date()), 'MMM yyyy')}
-                </p>
+        {isProfileLoading ? (
+          <DonorProfileSkeleton />
+        ) : (
+          <div className="glass-card rounded-2xl p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16 rounded-2xl">
+                  <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || donorProfile?.organization_name || 'Profile'} className="object-cover rounded-2xl" />
+                  <AvatarFallback className="rounded-2xl bg-primary/10 text-3xl font-bold text-primary">
+                    {profile?.full_name?.charAt(0) || donorProfile?.organization_name?.charAt(0) || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-display font-bold">
+                    {donorProfile?.organization_name || profile?.full_name || 'Your Name'}
+                  </h1>
+                  <p className="text-muted-foreground">
+                    {donorProfile?.donor_type === 'organization' ? 'Organization' : 'Individual Donor'} • {profile?.location || 'Location not set'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Member since {format(new Date(profile?.created_at || new Date()), 'MMM yyyy')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={() => setIsEditProfileModalOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button variant="outline" size="sm" onClick={copyProfileLink}>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Public Link
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to={`/donor/profile/${user?.id}`}>
+                    <Share2 className="h-4 w-4 mr-2" />
+                    View Public Profile
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to="/donor/cash-donate"><DollarSign className="h-4 w-4 mr-2" /> Donate Cash</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/donor/register"><Gift className="h-4 w-4 mr-2" /> Donate Device</Link>
+                </Button>
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => setIsEditProfileModalOpen(true)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-              <Button variant="outline" size="sm" onClick={copyProfileLink}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Public Link
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link to={`/donor/profile/${user?.id}`}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  View Public Profile
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/donor/cash-donate"><DollarSign className="h-4 w-4 mr-2" /> Donate Cash</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/donor/register"><Gift className="h-4 w-4 mr-2" /> Donate Device</Link>
-              </Button>
-            </div>
           </div>
-        </div>
+        )}
 
         {/* First time donor CTA */}
-        {donations.length === 0 && (
+        {!donationsLoading && donations.length === 0 && (
           <div className="glass-card rounded-2xl p-8 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
             <div className="flex flex-col md:flex-row items-center gap-6">
               <div className="h-20 w-20 rounded-2xl bg-primary/20 flex items-center justify-center">
@@ -131,15 +126,19 @@ export default function DonorDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4">
-          <StatCard icon={<Gift className="h-5 w-5" />} label="Devices Donated" value={stats.totalDonated} />
-          <StatCard icon={<DollarSign className="h-5 w-5" />} label="Cash Donated" value={`$${stats.cashDonated.toLocaleString()}`} />
-          <StatCard icon={<Users className="h-5 w-5" />} label="Recipients Helped" value={stats.recipientsHelped} />
-          <StatCard icon={<Globe className="h-5 w-5" />} label="Regions Reached" value={stats.regionsReached} />
-        </div>
+        {isProfileLoading || donationsLoading ? (
+          <StatsSkeleton count={4} />
+        ) : (
+          <div className="grid md:grid-cols-4 gap-4">
+            <StatCard icon={<Gift className="h-5 w-5" />} label="Devices Donated" value={stats.totalDonated} />
+            <StatCard icon={<DollarSign className="h-5 w-5" />} label="Cash Donated" value={`$${stats.cashDonated.toLocaleString()}`} />
+            <StatCard icon={<Users className="h-5 w-5" />} label="Recipients Helped" value={stats.recipientsHelped} />
+            <StatCard icon={<Globe className="h-5 w-5" />} label="Regions Reached" value={stats.regionsReached} />
+          </div>
+        )}
 
         {/* NFT Badges - Delivered Donations */}
-        {deliveredDonations.length > 0 && (
+        {!donationsLoading && deliveredDonations.length > 0 && (
           <div className="glass-card rounded-2xl p-6">
             <h2 className="text-xl font-display font-semibold mb-6">Your Impact Badges (SBTs)</h2>
             <p className="text-muted-foreground mb-6">
@@ -165,14 +164,17 @@ export default function DonorDashboard() {
         )}
 
         {/* Device Donation History Table */}
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-xl font-display font-semibold mb-4">Device Donation History</h2>
-          {donations.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                    <th className="pb-3 font-medium">Device</th>
+        {donationsLoading ? (
+          <TableSkeleton rows={3} />
+        ) : (
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-xl font-display font-semibold mb-4">Device Donation History</h2>
+            {donations.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border text-left text-sm text-muted-foreground">
+                      <th className="pb-3 font-medium">Device</th>
                     <th className="pb-3 font-medium">Condition</th>
                     <th className="pb-3 font-medium">Recipient</th>
                     <th className="pb-3 font-medium">Status</th>
@@ -219,11 +221,15 @@ export default function DonorDashboard() {
               </Button>
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         {/* Cash Donation History Table */}
-        <div className="glass-card rounded-2xl p-6">
-          <h2 className="text-xl font-display font-semibold mb-4">Cash Donation History</h2>
+        {cashLoading ? (
+          <TableSkeleton rows={3} />
+        ) : (
+          <div className="glass-card rounded-2xl p-6">
+            <h2 className="text-xl font-display font-semibold mb-4">Cash Donation History</h2>
           {cashDonations.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -264,7 +270,8 @@ export default function DonorDashboard() {
               </Button>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
 
       <EditDonorProfileModal 

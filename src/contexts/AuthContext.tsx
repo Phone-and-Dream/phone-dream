@@ -140,12 +140,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Immediately fetch and set roles to prevent race condition
+      // This ensures rolesLoaded is true before the function returns
+      if (data.user) {
+        const userRoles = await fetchRoles(data.user.id);
+        setRoles(userRoles);
+        setRolesLoaded(true);
+      }
+
       return { error: null };
     } catch (error) {
       return { error: error as Error };
