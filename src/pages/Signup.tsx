@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Smartphone, Gift, Heart, Loader2, Check, X } from 'lucide-react';
 import { BackButton } from '@/components/ui/back-button';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ type Role = 'donor' | 'recipient';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signUp, user, rolesLoaded, isDonor, isRecipient } = useAuth();
   const [role, setRole] = useState<Role | null>(null);
   const [email, setEmail] = useState('');
@@ -27,6 +28,14 @@ export default function Signup() {
   const isNameValid = name.trim().length >= 2;
   const isEmailValid = isValidEmail(email);
   const isPasswordValid = password.length >= 6;
+
+  // Pre-select role from URL query param
+  useEffect(() => {
+    const roleParam = searchParams.get('role');
+    if (roleParam === 'donor' || roleParam === 'recipient') {
+      setRole(roleParam);
+    }
+  }, [searchParams]);
   const isFormValid = role && isNameValid && isEmailValid && isPasswordValid;
 
   // Wait for roles to load after successful signup, then navigate
