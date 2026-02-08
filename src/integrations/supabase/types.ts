@@ -588,6 +588,51 @@ export type Database = {
         }
         Relationships: []
       }
+      donor_waitlist: {
+        Row: {
+          country: string
+          created_at: string
+          devices_interested: string[]
+          donation_timing: string | null
+          donor_type: string
+          email: string
+          estimated_devices: string | null
+          full_name: string
+          id: string
+          organization_name: string | null
+          organization_role: string | null
+          support_reason: string | null
+        }
+        Insert: {
+          country: string
+          created_at?: string
+          devices_interested: string[]
+          donation_timing?: string | null
+          donor_type: string
+          email: string
+          estimated_devices?: string | null
+          full_name: string
+          id?: string
+          organization_name?: string | null
+          organization_role?: string | null
+          support_reason?: string | null
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          devices_interested?: string[]
+          donation_timing?: string | null
+          donor_type?: string
+          email?: string
+          estimated_devices?: string | null
+          full_name?: string
+          id?: string
+          organization_name?: string | null
+          organization_role?: string | null
+          support_reason?: string | null
+        }
+        Relationships: []
+      }
       dream_requests: {
         Row: {
           created_at: string
@@ -1013,6 +1058,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      recipient_waitlist: {
+        Row: {
+          age_range: string
+          country: string
+          created_at: string
+          current_device_status: string
+          current_status: string
+          current_status_other: string | null
+          device_needed: string[]
+          device_usage_plan: string
+          email: string
+          full_name: string
+          id: string
+          learning_interest: string
+          learning_interest_other: string | null
+          state: string
+        }
+        Insert: {
+          age_range: string
+          country: string
+          created_at?: string
+          current_device_status: string
+          current_status: string
+          current_status_other?: string | null
+          device_needed: string[]
+          device_usage_plan: string
+          email: string
+          full_name: string
+          id?: string
+          learning_interest: string
+          learning_interest_other?: string | null
+          state: string
+        }
+        Update: {
+          age_range?: string
+          country?: string
+          created_at?: string
+          current_device_status?: string
+          current_status?: string
+          current_status_other?: string | null
+          device_needed?: string[]
+          device_usage_plan?: string
+          email?: string
+          full_name?: string
+          id?: string
+          learning_interest?: string
+          learning_interest_other?: string | null
+          state?: string
+        }
+        Relationships: []
       }
       recommendations: {
         Row: {
