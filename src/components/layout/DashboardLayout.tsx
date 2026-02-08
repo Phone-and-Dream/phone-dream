@@ -19,7 +19,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { TestnetBanner } from '@/components/TestnetBanner';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -73,9 +72,6 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Testnet Banner */}
-      <TestnetBanner />
-      
       {/* Top Bar */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur">
         <div className="flex h-16 items-center justify-between px-4 lg:px-6">
