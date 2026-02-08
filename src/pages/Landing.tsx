@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { WaitlistModal } from '@/components/WaitlistModal';
-
+import { isProductionEnvironment } from '@/lib/environment';
 interface AspirationalCard {
   id: string;
   name: string;
@@ -107,8 +107,7 @@ export default function Landing() {
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [waitlistOpen, setWaitlistOpen] = useState(false);
   
-  const isProduction = typeof window !== 'undefined' && 
-    window.location.hostname.includes('lovable.app');
+  const isProduction = isProductionEnvironment();
   const isPreview = !isProduction;
 
   return (

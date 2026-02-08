@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfiles';
+import { isProductionEnvironment } from '@/lib/environment';
 
 const navLinks = [
   { name: 'Dream Board', href: '/dream-board', icon: Heart },
@@ -46,8 +47,7 @@ export function Navbar() {
   };
 
   const isLoggedIn = !!user;
-  const isProduction = typeof window !== 'undefined' && 
-    window.location.hostname.includes('lovable.app');
+  const isProduction = isProductionEnvironment();
   const isPreview = !isProduction;
 
   return (
