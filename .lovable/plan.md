@@ -1,69 +1,104 @@
 
-# Fix: Custom Domain Production Detection
 
-## Problem
+# Fix: Complete Route Protection for Custom Domain
 
-The current production detection only checks for `lovable.app` in the hostname:
+## Problem Identified
 
+After analyzing the code, I found **two issues**:
+
+### Issue 1: Missing Routes in Protection List
+
+Several routes in `App.tsx` are **not listed** in `PREVIEW_ONLY_ROUTES`, which means they slip through the protection:
+
+| Route | Purpose | Should be Protected? |
+|-------|---------|---------------------|
+| `/forgot-password` | Password recovery | Yes - requires auth system |
+| `/reset-password` | Password reset | Yes - requires auth system |
+| `/recipient/profile/:id` | Public profile | Maybe - depends if you want public profiles pre-launch |
+| `/donor/profile/:id` | Public profile | Maybe - depends if you want public profiles pre-launch |
+| `/donor/cash-donate` | Cash donation page | Yes - functional route |
+
+### Issue 2: Catch-All Logic Flaw
+
+The current logic at line 48-53:
 ```tsx
-const isProduction = typeof window !== 'undefined' && 
-  window.location.hostname.includes('lovable.app');
+// In preview, allow preview-only routes
+if (!isProduction && (isAllowedInProduction || isPreviewRoute)) {
+  return <>{children}</>;
+}
+
+// For any other routes (like error pages), allow them
+return <>{children}</>;  // ← This ALWAYS returns children!
 ```
 
-When you use your custom domain, this check fails because the hostname no longer contains `lovable.app`. As a result:
-- The app thinks it's in "preview mode"
-- All routes become accessible instead of redirecting to `/coming-soon`
-- CTA buttons link to functional routes instead of `/coming-soon`
+The final `return <>{children}</>` is a **catch-all that always allows the route**, even in production! This means any route not explicitly listed anywhere slips through.
+
+---
 
 ## Solution
 
-Update the production detection logic to also recognize your custom domain. We need to modify **3 files** that contain this logic:
+### Fix 1: Add Missing Routes to Protection List
 
-1. `src/components/PrelaunchRoute.tsx` - Controls route access/redirects
-2. `src/pages/Landing.tsx` - Controls CTA button destinations  
-3. `src/components/layout/Navbar.tsx` - Controls Sign In/Get Started button destinations
-
-## Implementation
-
-### Create a shared utility for consistency
-
-To avoid duplicating the logic and make it easy to add more domains later, we'll create a small utility function:
-
-**New file: `src/lib/environment.ts`**
+Add all functional routes to `PREVIEW_ONLY_ROUTES`:
 ```tsx
-// List of production hostnames (add your custom domain here)
-const PRODUCTION_HOSTNAMES = [
-  'lovable.app',
-  'dream-device-connect.lovable.app',
-  // Add your custom domain here:
-  'aphoneandadream.com',
-  'www.aphoneandadream.com',
+const PREVIEW_ONLY_ROUTES = [
+  '/login',
+  '/signup',
+  '/select-role',
+  '/forgot-password',      // ADD
+  '/reset-password',       // ADD
+  '/donor/register',
+  '/donor/donate',
+  '/donor/dashboard',
+  '/donor/settings',
+  '/donor/cash-donate',    // ADD
+  '/donor/profile',        // ADD (for /donor/profile/:id)
+  '/recipient/apply',
+  '/recipient/apply/success',
+  '/recipient/dashboard',
+  '/recipient/tasks',
+  '/recipient/settings',
+  '/recipient/profile',    // ADD (for /recipient/profile/:id)
+  '/dream-board',
+  '/leaderboard',
+  '/admin/login',
+  '/admin',
 ];
+```
 
-export function isProductionEnvironment(): boolean {
-  if (typeof window === 'undefined') return false;
+### Fix 2: Fix the Catch-All Logic
+
+Change the final return to redirect unknown routes in production:
+```tsx
+export function PrelaunchRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const isProduction = isProductionEnvironment();
   
-  const hostname = window.location.hostname;
-  
-  return PRODUCTION_HOSTNAMES.some(prodHost => 
-    hostname === prodHost || hostname.endsWith('.' + prodHost)
+  const isAllowedInProduction = PRODUCTION_ALLOWED_ROUTES.some(route => 
+    location.pathname === route || location.pathname.startsWith(route + '/')
   );
+  
+  const isPreviewRoute = PREVIEW_ONLY_ROUTES.some(route => 
+    location.pathname === route || location.pathname.startsWith(route + '/')
+  );
+  
+  // In production, ONLY allow explicitly allowed routes
+  if (isProduction) {
+    if (isAllowedInProduction) {
+      return <>{children}</>;
+    }
+    // Everything else redirects to coming-soon
+    return <Navigate to="/coming-soon" replace />;
+  }
+  
+  // In preview/development, allow all routes
+  return <>{children}</>;
 }
 ```
 
-### Update the 3 files to use the shared utility
-
-**1. `src/components/PrelaunchRoute.tsx`**
-- Import `isProductionEnvironment` from the new utility
-- Replace inline check with `const isProduction = isProductionEnvironment();`
-
-**2. `src/pages/Landing.tsx`**
-- Import `isProductionEnvironment` from the new utility
-- Replace inline check with `const isProduction = isProductionEnvironment();`
-
-**3. `src/components/layout/Navbar.tsx`**
-- Import `isProductionEnvironment` from the new utility
-- Replace inline check with `const isProduction = isProductionEnvironment();`
+This is a much simpler and safer logic:
+- **Production**: Only allow `/` and `/coming-soon`, redirect everything else
+- **Preview**: Allow everything
 
 ---
 
@@ -71,27 +106,57 @@ export function isProductionEnvironment(): boolean {
 
 | File | Change |
 |------|--------|
-| `src/lib/environment.ts` | **NEW** - Create shared utility with your custom domain |
-| `src/components/PrelaunchRoute.tsx` | Use shared `isProductionEnvironment()` |
-| `src/pages/Landing.tsx` | Use shared `isProductionEnvironment()` |
-| `src/components/layout/Navbar.tsx` | Use shared `isProductionEnvironment()` |
+| `src/components/PrelaunchRoute.tsx` | Simplify logic + add missing routes |
 
-## What You'll Need to Provide
+## Complete Updated Code
 
-**Your custom domain name** - I'll need to know the exact domain you've configured (e.g., `aphoneandadream.com`) to add it to the production hostnames list.
+```tsx
+import { Navigate, useLocation } from 'react-router-dom';
+import { isProductionEnvironment } from '@/lib/environment';
 
-## Result
+// Routes allowed in production (pre-launch)
+const PRODUCTION_ALLOWED_ROUTES = ['/', '/coming-soon'];
 
-After this change:
-- Your custom domain will be recognized as production
-- Routes like `/login`, `/signup`, `/donor/dashboard` will redirect to `/coming-soon`
-- CTA buttons will link to `/coming-soon` instead of functional routes
-- The Lovable preview (`id-preview--*.lovable.app`) will continue to work normally for testing
+export function PrelaunchRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  
+  // Check if we're in production (published site or custom domain)
+  const isProduction = isProductionEnvironment();
+  
+  // In production, only allow specific routes
+  if (isProduction) {
+    const isAllowedInProduction = PRODUCTION_ALLOWED_ROUTES.some(route => 
+      location.pathname === route || location.pathname.startsWith(route + '/')
+    );
+    
+    if (isAllowedInProduction) {
+      return <>{children}</>;
+    }
+    
+    // Redirect all other routes to coming-soon
+    return <Navigate to="/coming-soon" replace />;
+  }
+  
+  // In preview/development, allow all routes
+  return <>{children}</>;
+}
+```
+
+This removes the `PREVIEW_ONLY_ROUTES` list entirely since we don't need it - in production we have a whitelist, in preview we allow everything.
+
+---
 
 ## Testing Steps
 
-1. Visit your custom domain
-2. Try navigating to `/login` directly → should redirect to `/coming-soon`
-3. Click "Donate a Device" on landing page → should go to `/coming-soon`
-4. Click "I Need a Device" → should go to `/coming-soon`
-5. Verify the Lovable preview URL still allows access to all routes for testing
+After publishing:
+
+1. Visit `aphoneandadream.com` → Should show landing page
+2. Visit `aphoneandadream.com/coming-soon` → Should show coming soon page
+3. Visit `aphoneandadream.com/login` → Should redirect to `/coming-soon`
+4. Visit `aphoneandadream.com/donor/dashboard` → Should redirect to `/coming-soon`
+5. Visit `aphoneandadream.com/forgot-password` → Should redirect to `/coming-soon`
+6. Click "Donate a Device" button → Should go to `/coming-soon`
+
+In preview (id-preview--*.lovable.app):
+1. All routes should work normally for testing
+
