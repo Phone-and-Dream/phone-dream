@@ -46,11 +46,18 @@ const aspirationalCards: AspirationalCard[] = [
   },
 ];
 
-const stats = [
-  { label: 'Devices Donated', value: '1,247', icon: Smartphone },
-  { label: 'Dreamers Helped', value: '1,156', icon: Heart },
-  { label: 'Countries Reached', value: '23', icon: Globe },
-  { label: 'Active Donors', value: '342', icon: Users },
+interface StatItem {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  subtitle?: string;
+}
+
+const stats: StatItem[] = [
+  { label: 'Devices Donated', value: 'Starting Soon', icon: Smartphone, subtitle: 'Every device creates opportunity' },
+  { label: 'Dreamers Helped', value: 'Your Story', icon: Heart, subtitle: 'The first impact could be yours' },
+  { label: 'Countries Reached', value: 'Global Vision', icon: Globe, subtitle: 'Built for anyone, anywhere' },
+  { label: 'Active Donors', value: 'Founding Supporters', icon: Users, subtitle: 'Be among the first' },
 ];
 
 const steps = [
@@ -235,6 +242,9 @@ export default function Landing() {
                   </div>
                   <p className="text-3xl md:text-4xl font-display font-bold">{stat.value}</p>
                   <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                  {stat.subtitle && (
+                    <p className="text-xs text-muted-foreground mt-2 italic">{stat.subtitle}</p>
+                  )}
                 </div>
               ))}
             </div>
