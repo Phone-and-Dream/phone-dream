@@ -232,18 +232,18 @@ export default function Landing() {
         )}
 
         {/* Stats Section */}
-        <section className="py-16 bg-card border-y border-border">
+        <section className="py-12 bg-card border-y border-border">
           <div className="container">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
               {stats.map((stat) => (
                 <div key={stat.label} className="text-center px-2">
-                  <div className="inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-2 md:mb-3">
+                  <div className="inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-1 md:mb-2">
                     <stat.icon className="h-5 w-5 md:h-6 md:w-6" />
                   </div>
-                  <p className="text-lg md:text-2xl lg:text-3xl font-display font-bold leading-tight">{stat.value}</p>
-                  <p className="text-xs md:text-sm text-muted-foreground mt-1">{stat.label}</p>
+                  <p className="text-base md:text-lg font-display font-bold leading-snug">{stat.value}</p>
+                  <p className="text-[11px] md:text-xs text-muted-foreground mt-1">{stat.label}</p>
                   {stat.subtitle && (
-                    <p className="text-[10px] md:text-xs text-muted-foreground mt-1 md:mt-2 italic">{stat.subtitle}</p>
+                    <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 md:mt-1 italic">{stat.subtitle}</p>
                   )}
                 </div>
               ))}
