@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2, ShieldCheck, Camera, ClipboardList, Cpu } from 'lucide-react';
+import { Check, X, Eye, AlertTriangle, LogOut, Users, Package, TrendingUp, Clock, Link2, Search, FileText, User, ArrowUpRight, ArrowDownRight, History, Loader2, ShieldCheck, Camera, ClipboardList, Cpu, UserPlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { useAllCashDonations } from '@/hooks/useCashDonations';
 import { TaskManager } from '@/components/admin/TaskManager';
 import { AuditLogViewer } from '@/components/admin/AuditLogViewer';
 import { DeviceImpactManager } from '@/components/admin/DeviceImpactManager';
+import { WaitlistManager } from '@/components/admin/WaitlistManager';
 import { logAdminAction } from '@/lib/auditLog';
 import { getStatusLabel, getStatusColor } from '@/lib/donationStateMachine';
 import { toast } from '@/hooks/use-toast';
@@ -304,6 +305,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="audit">
               <History className="h-4 w-4 mr-1" />
               Audit Log
+            </TabsTrigger>
+            <TabsTrigger value="waitlist">
+              <UserPlus className="h-4 w-4 mr-1" />
+              Waitlist
             </TabsTrigger>
           </TabsList>
 
@@ -787,6 +792,11 @@ export default function AdminDashboard() {
       {/* DEVICE IMPACT TAB */}
       <TabsContent value="device-impact">
         <DeviceImpactManager />
+      </TabsContent>
+
+      {/* WAITLIST TAB */}
+      <TabsContent value="waitlist">
+        <WaitlistManager />
       </TabsContent>
     </DashboardLayout>
   );
