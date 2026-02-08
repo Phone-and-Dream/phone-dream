@@ -456,7 +456,7 @@ export function WaitlistModal({ open, onOpenChange }: WaitlistModalProps) {
                     <Gift className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="font-semibold text-lg">Donate a device / Support the mission</p>
+                    <p className="font-semibold text-lg">Donate a device</p>
                     <p className="text-sm text-muted-foreground">Help bridge the digital divide</p>
                   </div>
                 </div>
