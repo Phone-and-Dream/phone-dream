@@ -1,3 +1,4 @@
+// Waitlist Modal Component
 import { useState, useMemo } from 'react';
 import { z } from 'zod';
 import { Heart, Gift, ArrowLeft, ArrowRight, Check, Search } from 'lucide-react';
