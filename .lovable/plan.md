@@ -1,75 +1,264 @@
 
-# Implementation Plan: Update Landing CTAs to Signup Flow & Remove /dev Route
+# Implementation Plan: Fix Login Redirect and Improve Dashboard Performance
 
-## Problem
-The landing page currently directs users to `/donor/register` and `/recipient/apply` in Preview mode, but these routes require existing accounts. Additionally, the `/dev` route is now redundant since the main landing page works in Preview mode.
+## Problem 1: Login Shows Landing Page First
 
-## Solution
-1. Update landing page CTA buttons to route to `/signup` with role pre-selection query parameters
-2. Add query parameter detection to the Signup form to auto-select the role
-3. Remove the `/dev` route from the app and delete the unused Index.tsx file
+**Root Cause:**
+After successful sign-in, the Login page sets `loginSuccess = true`, then a `useEffect` waits for `rolesLoaded` to become true before navigating. However, there's a race condition:
 
-## Files to Change
+1. `signIn()` completes and triggers `onAuthStateChange`
+2. The listener calls `fetchRoles()` with `setTimeout(..., 0)`
+3. During this tiny window, the user might see the landing page flash
 
-### 1. `src/pages/Landing.tsx`
-**Changes:**
-- Line 139: Change button link from `"/donor/register"` to `"/signup?role=donor"`
-- Line 145: Change button link from `"/recipient/apply"` to `"/signup?role=recipient"`
-- Line 358: Change button link from `"/donor/register"` to `"/signup?role=donor"`
+The issue is that `rolesLoaded` is set asynchronously after the auth state changes, and the navigation doesn't happen immediately.
 
-**Result:** All "Donate a Device" buttons lead to `/signup?role=donor` and "I Need a Device" buttons lead to `/signup?role=recipient` in Preview mode.
+**Solution:**
+Instead of relying solely on `useEffect`, navigate immediately after sign-in by manually fetching and setting roles within the `signIn` function itself (similar to how `signUp` already does this). This ensures roles are loaded before the function returns, allowing immediate navigation.
 
-### 2. `src/pages/Signup.tsx`
-**Changes:**
-- Import `useSearchParams` from react-router-dom (update line 2)
-- Add `const [searchParams] = useSearchParams();` after the navigate hook (line 17)
-- Add a new `useEffect` hook after the validation helpers that reads the `role` query parameter and pre-selects it:
-  ```tsx
-  useEffect(() => {
-    const roleParam = searchParams.get('role');
-    if (roleParam === 'donor' || roleParam === 'recipient') {
-      setRole(roleParam);
+### Files to Change
+
+**1. `src/contexts/AuthContext.tsx`**
+- Update `signIn` function to fetch roles immediately after successful authentication
+- Set `rolesLoaded` before the function returns (just like `signUp` does)
+
+```tsx
+// Current signIn (around lines 141-153)
+const signIn = async (email: string, password: string) => {
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+};
+
+// Updated signIn - fetch roles immediately
+const signIn = async (email: string, password: string) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+
+    // Immediately fetch and set roles to prevent race condition
+    if (data.user) {
+      const userRoles = await fetchRoles(data.user.id);
+      setRoles(userRoles);
+      setRolesLoaded(true);
     }
-  }, [searchParams]);
-  ```
 
-**Result:** When users click a CTA button with `?role=donor` or `?role=recipient`, the signup form automatically selects that role, streamlining the user flow.
+    return { error: null };
+  } catch (error) {
+    return { error: error as Error };
+  }
+};
+```
 
-### 3. `src/App.tsx`
-**Changes:**
-- Remove the import: `import Index from "./pages/Index";` (line 8)
-- Remove the route: `<Route path="/dev" element={<Index />} />` (line 56)
+**2. `src/pages/Login.tsx`**
+- Simplify navigation logic: navigate immediately after `signIn` returns successfully
+- Remove dependency on `rolesLoaded` effect since roles are now loaded synchronously
 
-**Result:** The `/dev` route no longer exists; all routes now use the main landing page.
+```tsx
+// Update handleSubmit to navigate immediately after signIn
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  // ... validation ...
+  
+  setIsLoading(true);
+  const { error } = await signIn(email, password);
+  
+  if (error) {
+    setIsLoading(false);
+    toast({ ... });
+    return;
+  }
 
-### 4. `src/pages/Index.tsx`
-**Changes:**
-- Delete this file entirely (no longer needed)
+  toast({ title: "Welcome back!", ... });
+  
+  // Navigate immediately - roles are now loaded in signIn
+  if (isAdmin) {
+    navigate('/admin', { replace: true });
+  } else if (isDonor && isRecipient) {
+    navigate('/select-role', { replace: true });
+  } else if (isDonor) {
+    navigate('/donor/dashboard', { replace: true });
+  } else if (isRecipient) {
+    navigate('/recipient/dashboard', { replace: true });
+  } else {
+    // Fallback based on selected role
+    navigate(selectedRole === 'donor' ? '/donor/dashboard' : '/recipient/dashboard', { replace: true });
+  }
+};
+```
 
-### 5. `src/components/PrelaunchRoute.tsx` (optional cleanup)
-**Changes:**
-- The `/dev` route is not in the `PREVIEW_ONLY_ROUTES` array currently, so no changes needed here.
+Wait, there's an issue: after `signIn` returns, the component's `isDonor`, `isRecipient`, etc. won't be updated yet because React hasn't re-rendered. We need to keep the `useEffect` approach but ensure `rolesLoaded` is set synchronously in `signIn`.
 
-## User Flow After Implementation
+**Revised approach for Login.tsx:**
+- Keep the `useEffect` for navigation
+- Add `setIsLoading(false)` only after navigation happens
+- The key fix is in `AuthContext.tsx` where `signIn` now awaits roles before returning
 
-**In Preview Mode:**
-- Landing page → "Donate a Device" → `/signup?role=donor` → Signup form auto-selects "I want to donate"
-- Landing page → "I Need a Device" → `/signup?role=recipient` → Signup form auto-selects "I need a device"
-- Navbar → "Get Started" → `/signup` → User manually selects role
-- `/dev` route → Returns 404 (no longer exists)
+---
 
-**In Production Mode:**
-- All buttons remain locked to `/coming-soon`
+## Problem 2: Dashboard Pages Load Slowly
 
-## Benefits
-- Streamlined signup flow: users immediately see their selected role pre-filled
-- Reduced friction: fewer clicks to reach the signup form
-- Cleaner codebase: removes the now-unnecessary `/dev` route and Index.tsx file
-- Consistent behavior: the main landing page now works the same in Preview and Production (with different link destinations)
+**Root Cause:**
+1. **Many parallel queries**: RecipientDashboard uses 11+ hooks that each make separate database calls
+2. **Full-screen loader**: The entire page is blocked while loading profile data
+3. **No skeleton UI**: Users see a spinner instead of a perceived-instant interface
+
+**Solution: Progressive Loading with Skeleton UI**
+
+Instead of blocking the entire page, show skeleton placeholders for each section and let data populate as it arrives. This creates a "progressive loading" experience.
+
+### Files to Change
+
+**1. Create `src/components/ui/dashboard-skeleton.tsx`**
+- Create reusable skeleton components for dashboard sections
+
+```tsx
+import { Skeleton } from "@/components/ui/skeleton";
+
+export function ProfileSkeleton() {
+  return (
+    <div className="glass-card rounded-2xl overflow-hidden">
+      <div className="h-40 bg-gradient-to-br from-primary/10 via-primary/5 to-accent/5" />
+      <div className="p-6 pt-0 -mt-12">
+        <div className="flex flex-col md:flex-row md:items-end gap-4">
+          <Skeleton className="w-24 h-24 rounded-2xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-4 w-64" />
+            <Skeleton className="h-4 w-40" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Skeleton key={i} className="h-24 rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export function SectionSkeleton({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="glass-card rounded-2xl p-6 space-y-4">
+      <Skeleton className="h-6 w-48" />
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-16 w-full rounded-lg" />
+      ))}
+    </div>
+  );
+}
+```
+
+**2. Update `src/pages/RecipientDashboard.tsx`**
+- Remove the full-page loading spinner
+- Show skeleton UI for sections still loading
+- Render content progressively as data arrives
+
+```tsx
+// Instead of blocking the entire page:
+if (isLoading) {
+  return (
+    <DashboardLayout role="recipient">
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    </DashboardLayout>
+  );
+}
+
+// Use progressive loading:
+return (
+  <DashboardLayout role="recipient">
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Profile Section - show skeleton if loading */}
+      {profileLoading || recipientLoading ? (
+        <ProfileSkeleton />
+      ) : (
+        <div className="glass-card rounded-2xl overflow-hidden">
+          {/* ... actual profile content ... */}
+        </div>
+      )}
+
+      {/* Stats Section - show skeleton while any stat data is loading */}
+      {profileLoading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* ... actual stats ... */}
+        </div>
+      )}
+
+      {/* Skills Section */}
+      {skillsLoading ? (
+        <SectionSkeleton rows={2} />
+      ) : skills.length > 0 && (
+        <div>...</div>
+      )}
+      
+      {/* ... etc for other sections ... */}
+    </div>
+  </DashboardLayout>
+);
+```
+
+**3. Update `src/pages/DonorDashboard.tsx`**
+- Apply the same progressive loading pattern
+- Replace full-page spinner with section skeletons
+
+**4. Optional Enhancement: Prefetch on hover**
+Add prefetching when users hover over dashboard navigation links to preload data before they click.
+
+```tsx
+// In DashboardLayout.tsx, add onMouseEnter to nav links:
+import { useQueryClient } from '@tanstack/react-query';
+
+// Prefetch recipient data on hover
+const prefetchRecipientData = () => {
+  queryClient.prefetchQuery({ queryKey: ['profile', user?.id] });
+  queryClient.prefetchQuery({ queryKey: ['recipient_profile', user?.id] });
+  // ... etc
+};
+```
+
+---
+
+## Summary of Changes
+
+| File | Change |
+|------|--------|
+| `src/contexts/AuthContext.tsx` | Update `signIn` to fetch roles immediately before returning |
+| `src/pages/Login.tsx` | Keep useEffect navigation, ensure it triggers immediately after roles load |
+| `src/components/ui/dashboard-skeleton.tsx` | NEW: Create skeleton components |
+| `src/pages/RecipientDashboard.tsx` | Replace full-page spinner with progressive skeleton loading |
+| `src/pages/DonorDashboard.tsx` | Replace full-page spinner with progressive skeleton loading |
+
+## Expected Results
+
+1. **Login Flow**: User signs in → toast appears → immediately navigates to correct dashboard (no landing page flash)
+2. **Dashboard Loading**: Page structure appears instantly with skeletons → data populates progressively → feels much faster
+3. **Navigation Between Pages**: Users see the page structure immediately, reducing perceived wait time
 
 ## Testing Steps
-1. Navigate to `/` in Preview mode
-2. Click "Donate a Device" → should go to `/signup?role=donor` with donor role pre-selected
-3. Click "I Need a Device" → should go to `/signup?role=recipient` with recipient role pre-selected
-4. Try navigating directly to `/dev` → should return 404 or redirect
-5. Verify production site still shows all buttons redirecting to `/coming-soon`
+
+1. Log out completely
+2. Log in as a recipient → should go straight to recipient dashboard
+3. Navigate between Portfolio, Earn XP, and Settings → should show skeletons briefly then content
+4. Repeat for donor login flow
+5. Test user with both donor and recipient roles → should go to role selection page
