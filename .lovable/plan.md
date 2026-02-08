@@ -1,85 +1,77 @@
 
-# Implementation Plan: Further Resize Stats Section for Optimal Mobile/Desktop Display
+# Implementation Plan: Improve Footer Layout and Update X Icon
 
 ## Summary
-The current stats section is still too large, particularly for mobile devices. The reference image shows a more compact design with smaller text. This plan reduces font sizes and spacing to create a tighter, more balanced layout that displays all content properly on mobile while scaling up appropriately on desktop.
+This plan improves the footer's visual arrangement and replaces the deprecated Twitter bird icon with the modern X (formerly Twitter) logo using a custom SVG component.
 
-## Current Issue
-- Main value text (`text-lg md:text-2xl lg:text-3xl`) is still too prominent on mobile
-- "Founding Supporters" text is wrapping or overflowing on mobile
-- Icons and spacing take up too much vertical real estate
-- Label text (`text-xs md:text-sm`) could be smaller
-- Subtitles (`text-[10px] md:text-xs`) are still quite visible
+## Current Issues
+1. **Outdated Twitter Icon**: The footer uses `Twitter` from lucide-react, which shows the old bird logo instead of the modern X branding
+2. **Layout could be improved**: The current 4-column grid layout works but could have better visual balance and spacing
 
-## Reference Design (from user's screenshot)
-The uploaded screenshot shows:
-- Compact, tight spacing around each stat card
-- Smaller main values that fit easily in 2-4 column layouts
-- Minimal icon size
-- Small, subdued labels and subtitles
-- Overall very condensed vertical height
+## Changes
 
-## Solution
+### 1. Create Custom X Icon Component
+Since Lucide doesn't include brand icons due to copyright, I'll create a simple inline SVG component that matches the official X logo styling.
 
-### Changes to Stats Rendering (lines 238-250)
+### 2. Update Footer Layout
+- **Better column distribution**: Adjust the grid to be more balanced on all screen sizes
+- **Add more visual breathing room**: Improve spacing between sections
+- **Enhanced hover effects**: Add subtle hover states for social icons
+- **Update copyright year**: Change from 2024 to 2025
+- **Add a "Company" section**: Include About and Contact placeholder links for better structure
 
-**Reduce font sizes across all breakpoints:**
+### Updated Footer Structure
 
-1. **Main Value** (currently `text-lg md:text-2xl lg:text-3xl`):
-   - Mobile: `text-base` (reduced from `text-lg`)
-   - Tablet/Desktop: `text-lg md:text-xl` (reduced from `md:text-2xl lg:text-3xl`)
-   - Add `leading-snug` for tighter line height
+```
+┌─────────────────────────────────────────────────────────────┐
+│  FOOTER                                                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  [Logo] A Phone and A Dream    Quick Links    Connect        │
+│                                                              │
+│  Tagline text about the        • Dream Board   Follow us:   │
+│  mission...                    • Donate        [X icon]     │
+│                                • Apply                       │
+│                                                              │
+├─────────────────────────────────────────────────────────────┤
+│  © 2025 A Phone and A Dream    Made with ❤️ for dreamers    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-2. **Label** (currently `text-xs md:text-sm`):
-   - Mobile: `text-[11px]` (reduced from `text-xs`)
-   - Desktop: `text-xs` (no change, already small)
+## Technical Details
 
-3. **Subtitle** (currently `text-[10px] md:text-xs`):
-   - Mobile: `text-[9px]` (reduced from `text-[10px]`)
-   - Desktop: `text-[10px]` (reduced from `text-xs`)
+### File: `src/components/layout/Footer.tsx`
 
-4. **Spacing Adjustments**:
-   - Icon container: Keep `h-10 w-10 md:h-12 md:w-12` but reduce margins to `mb-1 md:mb-2`
-   - Label margin: Reduce `mt-1` to stay consistent
-   - Subtitle margin: Reduce `mt-1 md:mt-2` to `mt-0.5 md:mt-1`
+**Changes:**
+1. Remove `Twitter` import from lucide-react
+2. Add custom `XIcon` SVG component with the modern X logo path
+3. Reorganize grid layout for better mobile/desktop balance:
+   - Mobile: Stack sections vertically
+   - Desktop: 3-column layout (brand takes more space)
+4. Add hover background effect on social icon link
+5. Update copyright year to 2025
+6. Add `Mail` icon with email link for contact
+7. Improve spacing and visual hierarchy
 
-5. **Grid/Container**:
-   - Reduce vertical padding: Change `py-16` to `py-12` on section
-   - Keep horizontal padding `px-2` on cards
-   - Keep gap `gap-4 md:gap-8`
-
-### Updated Code Structure
+### Custom X Icon SVG
+The X logo is a simple geometric shape - two crossing diagonal lines. I'll create a reusable component:
 
 ```tsx
-<section className="py-12 bg-card border-y border-border">
-  <div className="container">
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-      {stats.map((stat) => (
-        <div key={stat.label} className="text-center px-2">
-          <div className="inline-flex h-10 w-10 md:h-12 md:w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-1 md:mb-2">
-            <stat.icon className="h-5 w-5 md:h-6 md:w-6" />
-          </div>
-          <p className="text-base md:text-lg font-display font-bold leading-snug">{stat.value}</p>
-          <p className="text-[11px] md:text-xs text-muted-foreground mt-1">{stat.label}</p>
-          {stat.subtitle && (
-            <p className="text-[9px] md:text-[10px] text-muted-foreground mt-0.5 md:mt-1 italic">{stat.subtitle}</p>
-          )}
-        </div>
-      ))}
-    </div>
-  </div>
-</section>
+const XIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    className={className}
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 ```
 
 ## Result
-- More compact overall layout matching the reference screenshot
-- "Founding Supporters" fits comfortably on mobile without wrapping
-- Better visual hierarchy with tighter spacing
-- Maintains responsive behavior while being more space-efficient
-- All content visible and readable on both mobile and desktop
-
-## Testing Checklist
-- View on mobile (320px) - verify "Founding Supporters" fits
-- View on tablet (768px) - verify proper scaling
-- View on desktop (1920px) - verify proportions still look balanced
-- Check that text remains readable at smallest breakpoint
+- Modern, professional footer with the official X branding
+- Better visual balance across all screen sizes
+- Improved spacing and hover interactions
+- Updated copyright year
+- Maintains the warm, approachable feel of the brand
