@@ -1,49 +1,47 @@
 
-# Implementation Plan: Add Separate Routes for Landing Page and Index Page
+# Implementation Plan: Create Working Homepage at /dev
 
 ## Summary
-Add a new route so you can access both the current Landing page and the original Index page. This will let you navigate between them anytime for previewing and working on different things.
+Create a fully functional homepage at `/dev` where all authentication buttons (Sign In, Sign Up, Get Started) link to the actual auth pages instead of the coming-soon page.
 
-## Current State
-- **Landing page** (`src/pages/Landing.tsx`) → Currently at `/` route
-- **Index page** (`src/pages/Index.tsx`) → Not connected to any route (orphaned)
+## What This Will Do
+- Transform the blank `Index.tsx` into a working homepage
+- Include the Navbar and Footer for consistent navigation
+- All CTA buttons will link to real auth pages:
+  - **Sign In** → `/login`
+  - **Sign Up** / **Get Started** → `/signup`
+  - **Donate a Device** → `/donor/register`
+  - **I Need a Device** → `/recipient/apply`
 
-## Solution
-Add a new `/dev` route for the Index page so you can access both:
+## File Changes
 
-| Route | Page | Purpose |
-|-------|------|---------|
-| `/` | Landing.tsx | Main landing page (public-facing) |
-| `/dev` | Index.tsx | Development/testing blank page |
+### File: `src/pages/Index.tsx`
 
-## Changes Required
+Replace the blank placeholder with a functional homepage that mirrors the Landing page structure but with working auth links.
 
-### File: `src/App.tsx`
+**Key Differences from Landing.tsx:**
+| Element | Landing.tsx | Index.tsx (new) |
+|---------|-------------|-----------------|
+| Sign In button | → `/coming-soon` | → `/login` |
+| Get Started button | → `/coming-soon` | → `/signup` |
+| Donate a Device | → `/coming-soon` | → `/donor/register` |
+| I Need a Device | → `/coming-soon` | → `/recipient/apply` |
+| Join Waitlist CTA | Shows waitlist modal | Shows "Get Started" to `/signup` |
 
-1. **Add import for Index page** (line 9):
-   ```tsx
-   import Index from "./pages/Index";
-   ```
+**Structure:**
+- Navbar with working auth buttons
+- Hero section with working CTAs
+- Stats section (same as Landing)
+- How It Works section (same as Landing)
+- Success Stories section (same as Landing)
+- Final CTA section with working links
+- Footer
 
-2. **Add new route** (after line 54):
-   ```tsx
-   <Route path="/dev" element={<Index />} />
-   ```
-
-## How to Navigate
-After implementation:
-- **Landing page**: Visit `/` or click the logo
-- **Index/Dev page**: Visit `/dev` in the URL bar
-
-## Alternative Option
-If you prefer, I could rename the routes differently:
-- `/landing` → Landing page  
-- `/` → Index page (original blank page as home)
-
-Let me know if you'd prefer this alternative approach instead!
+## How to Navigate Between Pages
+- **Landing page (pre-launch)**: `/` - buttons go to coming-soon
+- **Working homepage (dev/testing)**: `/dev` - buttons go to real auth pages
 
 ## Result
-- Both pages accessible via separate routes
-- No changes to Landing.tsx content
-- Easy to switch between them during development
-- PrelaunchRoute will still work (you may need to add `/dev` to allowed routes if testing in production)
+You'll have two versions of the homepage:
+1. `/` - Public landing with waitlist focus (for pre-launch)
+2. `/dev` - Fully functional with working auth (for development/testing)
