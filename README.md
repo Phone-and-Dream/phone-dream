@@ -1,73 +1,79 @@
-# Welcome to your Lovable project
+# A Phone and A Dream
 
-## Project info
+Bridging the Digital Divide -- Connecting device donors with digital dreamers.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Website: [aphoneandadream.com](https://aphoneandadream.com)
+Twitter/X: [@aphoneandadream](https://x.com/aphoneandadream)
 
-## How can I edit this code?
+## About
 
-There are several ways of editing your application.
+A Phone and A Dream is an open, impact-driven platform that transforms unused devices into opportunities for people starting their journey in tech.
 
-**Use Lovable**
+Millions of functional phones and PCs sit unused, while talented individuals are locked out of learning, building, and earning simply because they lack access to basic tools. A Phone and A Dream bridges that gap by enabling transparent, trackable, and verifiable device donations powered by blockchain.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## What We're Building
 
-Changes made via Lovable will be committed automatically to this repo.
+A platform where:
 
-**Use your preferred IDE**
+- Donors (individuals and organizations) can donate devices and track their impact on-chain
+- Recipients receive more than devices -- they get a growth dashboard to share progress, milestones, and outcomes
+- Every donation is recorded transparently, creating trust and global accountability
+- Impact is visible, measurable, and verifiable over time
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Blockchain isn't a buzzword here -- it's the trust layer that enables global coordination, proof of impact, and long-term credibility.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Core Features
 
-Follow these steps:
+- Device donation tracking (phones, PCs, accessories)
+- On-chain verification and transparency
+- Soulbound donation certificates (SBTs)
+- Recipient progress dashboards and updates
+- Partnerships for bounties, hackathons, and learning opportunities
+- Open, permissionless participation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Why It Matters
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Access to tools is access to opportunity. By turning idle devices into launchpads for growth, A Phone and A Dream empowers the next generation of builders, creators, and problem-solvers -- especially in underserved communities.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## How It Works
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+1. **Apply or Donate** -- Recipients apply with their story. Donors register their devices.
+2. **Get Matched** -- Our team verifies applications and matches dreamers with devices.
+3. **Track Impact** -- Watch your impact grow as recipients achieve their milestones.
 
-**Edit a file directly in GitHub**
+## Accepted Devices
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+We accept used, refurbished, or new devices including:
 
-**Use GitHub Codespaces**
+- Smartphones (all brands)
+- Laptops (MacBooks, ThinkPads, etc.)
+- Tablets (iPads, Android tablets)
+- Desktop PCs (complete setups)
+- Monitors and peripherals (displays, keyboards, mice)
+- External storage (HDDs, SSDs, USB drives)
+- Creator tools (ring lights, mics, webcams, tripods)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Not limited to these -- we accept any functional tech device that can help someone pursue their dreams.
 
-## What technologies are used for this project?
+## For Stakeholders
 
-This project is built with:
+| Role | Value |
+|------|-------|
+| **Donors** | Give with purpose and track your device's impact transparently |
+| **Recipients** | Access opportunity and launch your dream with the right device |
+| **Partners** | Amplify your CSR efforts through scalable digital inclusion |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Tech Stack
 
-## How can I deploy this project?
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Lovable Cloud (Supabase)
+- **Blockchain**: Avalanche (Impact SBTs for verified impact tracking)
+- **Libraries**: React Router, TanStack Query, Recharts, ethers.js
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Status
 
-## Can I connect a custom domain to my Lovable project?
+Currently in pre-launch. Join the waitlist at [aphoneandadream.com](https://aphoneandadream.com).
 
-Yes, you can!
+## License
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+All rights reserved.
