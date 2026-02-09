@@ -2,7 +2,7 @@
 
 Bridging the Digital Divide -- Connecting device donors with digital dreamers.
 
-Website: [aphoneandadream.com](https://aphoneandadream.com)
+Website: [phoneandadream.com](https://phoneanddream.com)
 Twitter/X: [@aphoneandadream](https://x.com/aphoneandadream)
 
 ## About
@@ -72,7 +72,7 @@ Not limited to these -- we accept any functional tech device that can help someo
 
 ## Status
 
-Currently in pre-launch. Join the waitlist at [aphoneandadream.com](https://aphoneandadream.com).
+Currently in pre-launch. Join the waitlist at [phoneandaream.com](https://phoneanddream.com).
 
 ## License
 
