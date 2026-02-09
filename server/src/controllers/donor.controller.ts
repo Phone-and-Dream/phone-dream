@@ -71,7 +71,6 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
 
     const frontImageFile = pictureFiles?.frontImage?.[0];
     const backImageFile = pictureFiles?.backImage?.[0];
-
     
     const { section, user } = req.body;
 
@@ -90,17 +89,17 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
         }
       }
 
-      if (frontImageFile && backImageFile) {
-        const frontImage = await uploadImg({ filename: frontImageFile.originalname, file: frontImageFile.buffer, folder: "donation-images" });
-        const backImage = await uploadImg({ filename: backImageFile.originalname, file: backImageFile.buffer, folder: "donation-images" });
+      // if (frontImageFile && backImageFile) {
+      //   const frontImage = await uploadImg({ filename: frontImageFile.originalname, file: frontImageFile.buffer, folder: "donation-images" });
+      //   const backImage = await uploadImg({ filename: backImageFile.originalname, file: backImageFile.buffer, folder: "donation-images" });
   
-        req.body.frontImage = frontImage;
+      //   req.body.frontImage = frontImage;
     
-        req.body.backImage = backImage;
-      } else {
-        res.status(BAD_REQUEST).json({ error: "the images (front and back) for the device is required" });
-        return;
-      }
+      //   req.body.backImage = backImage;
+      // } else {
+      //   res.status(BAD_REQUEST).json({ error: "the images (front and back) for the device is required" });
+      //   return;
+      // }
 
       await deviceDonation.create(req.body);
     } else if (section === "cash") {

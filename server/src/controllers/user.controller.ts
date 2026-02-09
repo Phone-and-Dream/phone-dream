@@ -105,12 +105,12 @@ export const createDreamBoard = async (req: GlobalRequest, res: GlobalResponse) 
 
 export const updateProfile = async (req: GlobalRequest, res: GlobalResponse) => {
   try {
-    const profilePicBuffer = req.file?.buffer;
+    // const profilePicBuffer = req.file?.buffer;
 
-    if (profilePicBuffer) {
-      const profilePic = await uploadImg({ filename: req.file?.originalname, file: profilePicBuffer, folder: "user-profiles" });
-      req.body.profilePic = profilePic;
-    }
+    // if (profilePicBuffer) {
+    //   const profilePic = await uploadImg({ filename: req.file?.originalname, file: profilePicBuffer, folder: "user-profiles" });
+    //   req.body.profilePic = profilePic;
+    // }
 
     await user.findByIdAndUpdate(req.id, req.body);
 

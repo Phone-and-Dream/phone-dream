@@ -62,6 +62,8 @@ export const validateDeviceDonationData = (reqData: any) => {
   const deviceSchema = z.object({
     amount: z.number(),
     user: z.string().trim().optional(),
+    frontImage: z.string(),
+    backImage: z.string(),
     deviceVideo: z.string().trim(),
     imeiNumber: z.string().trim().optional(),
     willPayForRefurbish: z.boolean(),
