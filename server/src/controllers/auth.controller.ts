@@ -6,7 +6,7 @@ import { getRefreshToken, JWT, validateUserSignUpData } from "@/utils/utils";
 import { formatDate } from "date-fns";
 import bcrypt from "bcrypt";
 
-export const userSignUp = async (req: GlobalRequest, res: GlobalResponse) => {
+export const signUp = async (req: GlobalRequest, res: GlobalResponse) => {
   const { email, password, fullName, page } = req.body;
 
   try {
@@ -15,7 +15,6 @@ export const userSignUp = async (req: GlobalRequest, res: GlobalResponse) => {
       res.status(BAD_REQUEST).json({ error: "invalid user sign up data" });
       return;
     }
-
 
     let created;
 
@@ -101,7 +100,7 @@ export const signIn = async (req: GlobalRequest, res: GlobalResponse) => {
       }
     }
 
-    const id = exists._id as unknown as string;
+    const id = exists?._id as unknown as string;
 
     const accessToken = JWT.sign(id);
 
