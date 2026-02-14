@@ -1,12 +1,11 @@
 import { Router } from "express";
-import { addAward, performTask, addCourse, addEmploymentHistory, addEvent, addProject, addRecommendation, addSkill, createDreamBoard, deleteProfile, updateProfile, userDashboard, userPublicProfile } from "@/controllers/user.controller";
+import { addAward, performTask, addCourse, addEmploymentHistory, addEvent, addProject, addRecommendation, addSkill, createDreamBoard, deleteProfile, updateProfile, userDashboard } from "@/controllers/user.controller";
 import { upload } from "@/configs/multer";
 
 const router = Router();
 
 router
   .get("/dashboard", userDashboard)
-  .get("/profile/:id", userPublicProfile)
   .post("/perform-task", performTask)
   .post("/create-dream-board", createDreamBoard)
   .post("/add-project", addProject)
