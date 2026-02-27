@@ -45,7 +45,7 @@ const userSchema = new mongoose.Schema({
   },
   xp: {
     type: Number,
-    required: true
+    default: 0
   },
   fullName: {
     type: String,

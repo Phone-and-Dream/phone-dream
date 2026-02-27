@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const donorSchema = new mongoose.Schema({
   career: {
     type: String,
-    required: true
+    required: true,
+    default: "Entreprenuer"
   },
   donorType: {
     type: String,
