@@ -72,7 +72,9 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
     const frontImageFile = pictureFiles?.frontImage?.[0];
     const backImageFile = pictureFiles?.backImage?.[0];
     
-    const { section, user } = req.body;
+    const { section, recipient } = req.body;
+    
+    req.body.donor = req.id;
 
     if (section === "device") {
       const { success } = validateDeviceDonationData(req.body);
@@ -81,12 +83,15 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
         return;
       }
 
-      if (user) {
-        const recipientExists = await user.findById(user);
+      if (recipient) {
+        const recipientExists = await user.findById(recipient);
         if (!recipientExists) {
           res.status(BAD_REQUEST).json({ error: "recipient does not exist" });
           return;
         }
+        
+        req.body.recipient = recipientExists.fullName;
+        req.body.user = 
       }
 
       // if (frontImageFile && backImageFile) {
@@ -100,6 +105,8 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
       //   res.status(BAD_REQUEST).json({ error: "the images (front and back) for the device is required" });
       //   return;
       // }
+      // 
+      req.body.owner = req.owner;
 
       await deviceDonation.create(req.body);
     } else if (section === "cash") {
