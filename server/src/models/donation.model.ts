@@ -59,16 +59,18 @@ const deviceDonationSchema = new mongoose.Schema({
     enum: ["in review", "accepted", "rejected", "delivered"],
     default: "in review"
   },
-  recipient: {
-    type: String
+  owner: {
+    type: String,
+    required: true
   },
-  user: {
+  recipient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users"
   },
   donor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "donors"
+    ref: "donors",
+    required: true
   },
 }, { timestamps: true });
 

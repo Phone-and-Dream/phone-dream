@@ -71,7 +71,7 @@ Mounted at `/api/donor` and protected by `authenticateDonor` middleware.
   - Description: Create a donation (device or cash). Uses multipart/form-data for images.
   - Body (multipart/form-data):
     - `section`: "device" or "cash" (determines validation)
-    - For device donations expected fields validated by `validateDeviceDonationData` in `src/utils/utils.ts` (e.g. amount, frontImage, backImage, deviceVideo, willPayForRefurbish, condition, deviceType, status, etc.).
+    - For device donations expected fields validated by `validateDeviceDonationData` in `src/utils/utils.ts` (i.e. amount, frontImage, backImage, deviceVideo, willPayForRefurbish, condition ("new", "good condition", "refurbished"), deviceType ("smartphone", "tablet", "desktop pc", "other", "laptop", "monitor", "keyboard", "external drive", "printer"), specifications (optional), imeiNumber (optional), recipient (the id of the recipient)).
     - File fields (as defined in route): `frontImage` (max 1), `backImage` (max 1). The controller reads these from `req.files`.
   - Auth: required (donor JWT)
 
