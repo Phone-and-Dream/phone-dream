@@ -54,6 +54,9 @@ const deviceDonationSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  recipient: {
+    type: String
+  },
   status: {
     type: String,
     enum: ["in review", "accepted", "rejected", "delivered"],
@@ -63,7 +66,7 @@ const deviceDonationSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  recipient: {
+  user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users"
   },

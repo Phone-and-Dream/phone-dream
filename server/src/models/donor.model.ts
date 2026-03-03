@@ -35,7 +35,11 @@ const donorSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
-  }
+  },
+  badgesMinted: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "badges"
+  }]
 }, { timestamps: true });
 
 export const donor = mongoose.model("donors", donorSchema);
