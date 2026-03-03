@@ -1,3 +1,4 @@
+import { formatDate } from "date-fns";
 import logger from "@/configs/logger";
 import { award } from "@/models/award.model";
 import { badge } from "@/models/badge.model";
@@ -11,7 +12,7 @@ import { skill } from "@/models/skill.model";
 import { task, taskCompleted } from "@/models/task.model";
 import { user } from "@/models/user.model";
 import { uploadImg } from "@/utils/img.utils";
-import { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, OK } from "@/utils/status.utils";
+import { BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, FORBIDDEN, NOT_FOUND, OK } from "@/utils/status.utils";
 import {
   validateAwardData,
   validateCourseData,
@@ -60,14 +61,7 @@ export const userPublicProfile = async (req: GlobalRequest, res: GlobalResponse)
       return;
     }
 
-    const badges = [];
-
-    for (const bs of userFound.badgesMinted) {
-      const badgeFound = await badge.findById(bs).lean();
-      if (badgeFound) {
-        badges.push(badgeFound);
-      }
-    }
+    const badges = await badge.find({ user: userFound._id }).select("recipientDateMinted recipientMinted recipientTokenId career blockExplorer blockchain deviceType donor donatedBy fundingType mintedBy").lean();
 
     const publicProfileData: Record<string, any | any[]> = {
       _id: userFound._id,
@@ -83,6 +77,43 @@ export const userPublicProfile = async (req: GlobalRequest, res: GlobalResponse)
   } catch (error) {
     logger.error(error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: "error fetching public profile" })
+  }
+}
+
+export const mintBadge = async (req: GlobalRequest, res: GlobalResponse) => {
+  try {
+    const { badgeId, tokenId } = req.body;
+
+    const badgeFound = await badge.findById(badgeId);
+    if (!badgeFound) {
+      res.status(NOT_FOUND).json({ error: "badge not found" });
+      return;
+    }
+
+    const userFound = await user.findById(req.id);
+    if (!userFound) {
+      res.status(NOT_FOUND).json({ error: "user not found" });
+      return;
+    }
+
+    if (badgeFound.recipientMinted) {
+      res.status(FORBIDDEN).json({ error: "error cannot mint twice" });
+      return;
+    }
+
+    badgeFound.recipientTokenId = tokenId;
+    badgeFound.recipientMinted = true;
+    badgeFound.recipientDateMinted = formatDate(new Date(), "MMM, y");
+
+    userFound.badgesMinted.push(badgeId);
+
+    await badgeFound.save();
+    await userFound.save();
+
+    res.status(OK).json({ message: "badge minted!" });
+  } catch (error) {
+    logger.error(error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: "error minting badge" });
   }
 }
 

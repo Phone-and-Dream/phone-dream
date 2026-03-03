@@ -1,9 +1,11 @@
+import { formatDate } from "date-fns";
 import logger from "@/configs/logger";
 import { cashDonation, deviceDonation } from "@/models/donation.model";
 import { donor } from "@/models/donor.model";
 import { dreamBoard } from "@/models/dreamBoard.model";
+import { badge } from "@/models/badge.model";
 import { user } from "@/models/user.model";
-import { INTERNAL_SERVER_ERROR, BAD_REQUEST, OK, CREATED } from "@/utils/status.utils";
+import { INTERNAL_SERVER_ERROR, BAD_REQUEST, OK, CREATED, NOT_FOUND, FORBIDDEN } from "@/utils/status.utils";
 import { validateDeviceDonationData } from "@/utils/utils";
 import { uploadImg } from "@/utils/img.utils";
 
@@ -21,6 +23,43 @@ export const donorDashboard = async (req: GlobalRequest, res: GlobalResponse) =>
   } catch (error) {
     logger.error(error);
     res.status(INTERNAL_SERVER_ERROR).json({ error: "error fetching dashboard" });
+  }
+}
+
+export const mintBadge = async (req: GlobalRequest, res: GlobalResponse) => {
+  try {
+    const { badgeId, tokenId } = req.body;
+    
+    const badgeFound = await badge.findById(badgeId);
+    if (!badgeFound) {
+      res.status(NOT_FOUND).json({ error: "badge not found" });
+      return;
+    }
+
+    if (badgeFound.donorMinted) {
+      res.status(FORBIDDEN).json({ error: "error cannot mint twice" });
+      return;
+    }
+
+    const donorFound = await donor.findById(req.id);
+    if (!donorFound) {
+      res.status(NOT_FOUND).json({ error: "donor not found" });
+      return;
+    }
+
+    badgeFound.donorTokenId = tokenId;
+    badgeFound.donorMinted = true;
+    badgeFound.donorDateMinted = formatDate(new Date(), "MMM, y");
+
+    donorFound.badgesMinted.push(badgeId);
+
+    await badgeFound.save();
+    await donorFound.save();
+
+    res.status(OK).json({ message: "badge minted!" });
+  } catch (error) {
+    logger.error(error);
+    res.status(INTERNAL_SERVER_ERROR).json({ error: "error minting badge" });
   }
 }
 
@@ -71,10 +110,21 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
 
     const frontImageFile = pictureFiles?.frontImage?.[0];
     const backImageFile = pictureFiles?.backImage?.[0];
-    
+
     const { section, recipient } = req.body;
-    
+
     req.body.donor = req.id;
+    
+    if (recipient) {
+      const recipientExists = await user.findById(recipient);
+      if (!recipientExists) {
+        res.status(BAD_REQUEST).json({ error: "recipient does not exist" });
+        return;
+      }
+
+      req.body.recipient = recipientExists.fullName;
+      req.body.user = recipientExists._id;
+    }
 
     if (section === "device") {
       const { success } = validateDeviceDonationData(req.body);
@@ -83,21 +133,10 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
         return;
       }
 
-      if (recipient) {
-        const recipientExists = await user.findById(recipient);
-        if (!recipientExists) {
-          res.status(BAD_REQUEST).json({ error: "recipient does not exist" });
-          return;
-        }
-        
-        req.body.recipient = recipientExists.fullName;
-        req.body.user = 
-      }
-
       // if (frontImageFile && backImageFile) {
       //   const frontImage = await uploadImg({ filename: frontImageFile.originalname, file: frontImageFile.buffer, folder: "donation-images" });
       //   const backImage = await uploadImg({ filename: backImageFile.originalname, file: backImageFile.buffer, folder: "donation-images" });
-  
+
       //   req.body.frontImage = frontImage;
     
       //   req.body.backImage = backImage;
@@ -105,7 +144,7 @@ export const createDonation = async (req: GlobalRequest, res: GlobalResponse) =>
       //   res.status(BAD_REQUEST).json({ error: "the images (front and back) for the device is required" });
       //   return;
       // }
-      // 
+
       req.body.owner = req.owner;
 
       await deviceDonation.create(req.body);
