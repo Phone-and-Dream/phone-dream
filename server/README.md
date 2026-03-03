@@ -58,20 +58,27 @@ Mounted at `/api/donor` and protected by `authenticateDonor` middleware.
   - Description: Get donor dashboard data (donor profile, cash donated, devices donated, recipients helped).
   - Auth: required (donor JWT)
 
+- POST /api/donor/mint-badge
+    - Body: `badgeId` (id of badge to mark as completed) and `tokenId` the tokenId gotten from the smart contract.
+  - Auth: required (user JWT)
+
 - GET /api/donor/profile/:id
-  - Description: Public donor profile by id
+  - Description: Public donor profile by id. Returns aggregated public fields and minted badges.
   - Auth: none
 
 - PUT /api/donor/update-donor
   - Description: Update donor profile. Accepts multipart/form-data with optional `profilePic` file.
   - Body: multipart/form-data fields map to donor model fields. If a file is uploaded, multer exposes it as `req.file` and the controller will upload it and set `profilePic`.
+  data: {
+  
+  }
   - Auth: required (donor JWT)
 
 - POST /api/donor/create-donation
   - Description: Create a donation (device or cash). Uses multipart/form-data for images.
   - Body (multipart/form-data):
     - `section`: "device" or "cash" (determines validation)
-    - For device donations expected fields validated by `validateDeviceDonationData` in `src/utils/utils.ts` (i.e. amount, frontImage, backImage, deviceVideo, willPayForRefurbish, condition ("new", "good condition", "refurbished"), deviceType ("smartphone", "tablet", "desktop pc", "other", "laptop", "monitor", "keyboard", "external drive", "printer"), specifications (optional), imeiNumber (optional), recipient (the id of the recipient)).
+    - For device donations expected fields validated by `validateDeviceDonationData` in `src/utils/utils.ts` (i.e. amount, frontImage, backImage, deviceVideo, willPayForRefurbish, condition ("new", "good condition", "refurbished"), deviceType ("smartphone", "tablet", "desktop pc", "other", "laptop", "monitor", "keyboard", "external drive", "printer"), specifications (optional), imeiNumber (optional), recipient (optional - the id of the recipient)).
     - File fields (as defined in route): `frontImage` (max 1), `backImage` (max 1). The controller reads these from `req.files`.
   - Auth: required (donor JWT)
 
@@ -89,6 +96,10 @@ Mounted at `/api/recipient` and protected by `authenticateUser` middleware.
 
 - POST /api/recipient/perform-task
   - Query: `taskId` (id of task to mark as completed)
+  - Auth: required (user JWT)
+
+- POST /api/recipient/mint-badge
+    - Body: `badgeId` (id of badge to mark as completed) and `tokenId` the tokenId gotten from the smart contract.
   - Auth: required (user JWT)
 
 - POST /api/recipient/create-dream-board
