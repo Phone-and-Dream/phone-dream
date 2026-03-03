@@ -67,8 +67,18 @@ export const validateDeviceDonationData = (reqData: any) => {
     deviceVideo: z.string().trim(),
     imeiNumber: z.string().trim().optional(),
     willPayForRefurbish: z.boolean(),
-    condition: z.enum(["smartphone", "tablet", "desktop pc", "other", "laptop", "monitor", "keyboard", "external drive", "printer"]),
-    deviceType: z.enum(["new", "good condition", "refurbished"]),
+    deviceType: z.enum([
+      "smartphone",
+      "tablet",
+      "desktop pc",
+      "other",
+      "laptop",
+      "monitor",
+      "keyboard",
+      "external drive",
+      "printer"
+    ]),
+    condition: z.enum(["new", "good condition", "refurbished"]),
     specifications: z.string().optional()
   });
 
