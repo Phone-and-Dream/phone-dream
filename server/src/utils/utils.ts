@@ -61,7 +61,7 @@ export const validateDreamBoardCreateData = (reqData: any) => {
 export const validateDeviceDonationData = (reqData: any) => {
   const deviceSchema = z.object({
     amount: z.number(),
-    user: z.string().trim().optional(),
+    recipient: z.string().trim().optional(),
     frontImage: z.string(),
     backImage: z.string(),
     deviceVideo: z.string().trim(),
@@ -69,7 +69,6 @@ export const validateDeviceDonationData = (reqData: any) => {
     willPayForRefurbish: z.boolean(),
     condition: z.enum(["smartphone", "tablet", "desktop pc", "other", "laptop", "monitor", "keyboard", "external drive", "printer"]),
     deviceType: z.enum(["new", "good condition", "refurbished"]),
-    status: z.enum(["in review", "accepted", "rejected"]),
     specifications: z.string().optional()
   });
 
