@@ -76,6 +76,7 @@ export const authenticateDonor = async (req: GlobalRequest, res: GlobalResponse,
     }
 
     req.id = id;
+    req.owner = isDonor.fullName;
 
     next();
   } catch (error: any) {
